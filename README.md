@@ -52,7 +52,7 @@
 
 ## Conhecimento / Docs
 - Understand Anything — https://github.com/Lum1104/Understand-Anything
-- Context Engineering Intro — https://lnkd.in/e9MMrDTN
+- Context Engineering Intro — https://github.com/coleam00/context-engineering-intro
 
 ## Claude Code ecosystem
 
