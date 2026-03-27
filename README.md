@@ -20,11 +20,10 @@
 
 ## RAG / Memória / Contexto
 - Hindsight — https://github.com/vectorize-io/hindsight
-- LightRAG — https://lnkd.in/enFers4V
-- Claude Mem (plugin) — https://github.com/thedotmack/claude-mem
-- Claude Mem (ecosystem) — https://lnkd.in/ebzS_SMz
+- LightRAG — https://github.com/hkuds/lightrag
+- Claude Mem — https://github.com/thedotmack/claude-mem
 
-## Context / Evolution layer (next-gen agents)
+## Context / Evolution layer
 - OpenSpace — https://github.com/HKUDS/OpenSpace
 
 ## OpenClaw ecosystem
@@ -46,23 +45,31 @@
 - Get Shit Done — https://lnkd.in/eNfz5JtY
 
 ## Qualidade / Controle
-- UI-UX Pro Max — https://lnkd.in/efm8vs5V
+- UI-UX Pro Max — https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
 
 ## Integrações
-- n8n MCP — https://lnkd.in/etAD_8W3
+- n8n MCP — https://github.com/czlonkowski/n8n-mcp
 
 ## Conhecimento / Docs
 - Understand Anything — https://github.com/Lum1104/Understand-Anything
 - Context Engineering Intro — https://lnkd.in/e9MMrDTN
 
 ## Claude Code ecosystem
-- Everything Claude Code — https://lnkd.in/e53G89pm
-- Awesome Claude Code — https://lnkd.in/e_Ykx7hJ
-- Claude Code Best Practices — https://lnkd.in/eaBJqhYC
-- Claude Code Hooks Mastery — https://lnkd.in/eU8J5gYp
-- Obsidian Skills — https://lnkd.in/eFckvNVJ
-- Awesome Agent Skills — https://lnkd.in/eXF5pRsQ
-- AY Skills Library — https://lnkd.in/eRC3NENe
+
+### Setup / Base
+- Everything Claude Code — https://github.com/affaan-m/everything-claude-code
+
+### Curadoria / coleções
+- Awesome Claude Code — https://github.com/hesreallyhim/awesome-claude-code
+- Awesome Agent Skills — https://github.com/VoltAgent/awesome-agent-skills
+- AY Skills Library — https://github.com/walidboulanouar/ay-skills
+
+### Boas práticas / guias
+- Claude Code Best Practices — https://github.com/shanraisshan/claude-code-best-practice
+- Claude Code Hooks Mastery — https://github.com/disler/claude-code-hooks-mastery
+
+### Extensões / nicho
+- Obsidian Skills — https://github.com/kepano/obsidian-skills
 
 ## Explorar depois
 - ComfyUI — https://github.com/comfy-org/ComfyUI
