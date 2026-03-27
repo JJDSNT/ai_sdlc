@@ -157,3 +157,19 @@
 - ComfyUI — https://github.com/comfy-org/ComfyUI
 - ComfyUI MCP — https://github.com/artokun/comfyui-mcp
 - ComfyUI MCP Server — https://github.com/joenorton/comfyui-mcp-server
+
+  ollama
+
+  ## 🗄️ Vector / storage layer
+
+- Qdrant — https://github.com/qdrant/qdrant  
+- Weaviate — https://github.com/weaviate/weaviate  
+
+👉 embeddings, retrieval, long-term knowledge storage
+
+## 📊 Evaluation / Observability
+
+- Langfuse — https://github.com/langfuse/langfuse  
+- Helicone — https://github.com/helicone/helicone  
+
+👉 tracing, logs, evaluation, cost tracking
