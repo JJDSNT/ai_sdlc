@@ -13,7 +13,7 @@
 - LightRAG (external integration) — https://github.com/hkuds/lightrag
 
 ### Workflow / Continuity
-- Get Shit Done — https://lnkd.in/eNfz5JtY
+- Get Shit Done — https://github.com/gsd-build/get-shit-done
 - Claude Labbook — https://github.com/anthonylee991/claude-labbook
 
 ### Quality / Output control
@@ -157,8 +157,6 @@
 - ComfyUI — https://github.com/comfy-org/ComfyUI
 - ComfyUI MCP — https://github.com/artokun/comfyui-mcp
 - ComfyUI MCP Server — https://github.com/joenorton/comfyui-mcp-server
-
-  ollama
 
   ## 🗄️ Vector / storage layer
 
