@@ -1,16 +1,16 @@
-# 🧠 AI Stack (by ecosystem)
+# 🧠 AI Stack (by ecosystem & layers)
 
 ---
 
 ## 🟢 Claude Code ecosystem (terminal AI OS)
 
-### Core
+### Core runtime
 - Claude Code — https://github.com/anthropics/claude-code
 - Superpowers — https://github.com/obra/superpowers
 
 ### Memory / Context
 - Claude Mem — https://github.com/thedotmack/claude-mem
-- LightRAG — https://github.com/hkuds/lightrag
+- LightRAG (external integration) — https://github.com/hkuds/lightrag
 
 ### Workflow / Continuity
 - Get Shit Done — https://lnkd.in/eNfz5JtY
@@ -25,25 +25,35 @@
 ### Knowledge / Docs
 - Understand Anything — https://github.com/Lum1104/Understand-Anything
 
-### Meta / Extensions
+### Extensions / Packs
 - Everything Claude Code — https://github.com/affaan-m/everything-claude-code
 - Obsidian Skills — https://github.com/kepano/obsidian-skills
 
+### Learning / Guides
+- Claude Code Ultimate Guide — https://github.com/FlorianBruniaux/claude-code-ultimate-guide
+- Claude Code Best Practices — https://github.com/shanraisshan/claude-code-best-practice
+- Claude Code Hooks Mastery — https://github.com/disler/claude-code-hooks-mastery
+- Context Engineering Intro — https://github.com/coleam00/context-engineering-intro
+
+### Discovery
+- Awesome Claude Code — https://github.com/hesreallyhim/awesome-claude-code
+- Awesome Agent Skills — https://github.com/VoltAgent/awesome-agent-skills
+- AY Skills Library — https://github.com/walidboulanouar/ay-skills
+
 ---
 
-## 🟡 Letta ecosystem (stateful agents OS)
+## 🟡 Letta ecosystem (stateful agent OS)
 
-### Core
+### Core runtime
 - Letta Code — https://github.com/letta-ai/letta
 
-👉 alternativa direta ao Claude Code + Mem
-👉 foco em agentes com memória persistente
+👉 full stack: runtime + memory + agents
 
 ---
 
-## 🔵 LangChain / Agent frameworks
+## 🔵 Agent frameworks (builders)
 
-### Core
+### Core frameworks
 - DeepAgents — https://github.com/langchain-ai/deepagents
 - Open-SWE — https://github.com/langchain-ai/open-swe
 
@@ -56,28 +66,38 @@
 
 ## 🟣 HKUDS ecosystem (RAG + swarm research)
 
+### Core
 - LightRAG — https://github.com/hkuds/lightrag
+
+### Agents
 - ClawTeam — https://github.com/HKUDS/ClawTeam
+
+### Evolution layer
 - OpenSpace — https://github.com/HKUDS/OpenSpace
 
 ---
 
 ## 🟠 OpenClaw ecosystem (agent OS attempt)
 
+### Core
 - OpenClaw — https://github.com/openclaw/openclaw
+
+### Orchestration
 - Antfarm — https://github.com/snarktank/antfarm
 - Clawith — https://github.com/dataelement/Clawith
 - Paperclip — https://github.com/paperclipai/paperclip
+
+### Interface
 - ClawX — https://github.com/ValueCell-ai/ClawX
 
 ---
 
-## 🔴 Multi-agent orchestration / swarm infra
+## 🔴 Agent runtime / execution layer
 
 - Scion — https://github.com/GoogleCloudPlatform/scion
+- Docker Agent — https://github.com/docker/docker-agent
 
-👉 agentes paralelos em containers
-👉 orchestration real (nível infra)
+👉 multi-agent execution / container orchestration
 
 ---
 
@@ -86,25 +106,30 @@
 - CopilotKit — https://github.com/CopilotKit/CopilotKit
 - LangChain OpenUI — https://docs.langchain.com/oss/javascript/langchain/frontend/integrations/openui
 
-👉 camada de UI para agentes (chat + generative UI)
+👉 UI + generative interfaces for agents
+
+---
+
+## 🔌 Context / Agent Gateway layer
+
+- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
+- AgentGateway — https://github.com/agentgateway/agentgateway
+
+👉 routing, context injection, tool access
 
 ---
 
 ## ⚙️ Infra (agnostic)
 
 - Ollama — https://github.com/ollama/ollama
-- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
-- AgentGateway — https://github.com/agentgateway/agentgateway
 - TrustGraph — https://github.com/trustgraph-ai/trustgraph
 - OpenViking — https://github.com/volcengine/OpenViking
-- Docker Agent — https://github.com/docker/docker-agent
 
 ---
 
-## 🔁 Workflow / Productivity
+## 🔁 Workflow / Productivity (cross-stack)
 
 - Vibe Kanban — https://github.com/BloopAI/vibe-kanban
-- Get Shit Done — https://lnkd.in/eNfz5JtY
 
 ---
 
@@ -117,6 +142,13 @@
 ## 🧪 Tools / niche
 
 - Code Review Graph — https://github.com/tirth8205/code-review-graph
+
+---
+
+## 🧪 Reference architectures
+
+- Google Autonomous AI pipelines (Antigravity)  
+  https://codelabs.developers.google.com/autonomous-ai-developer-pipelines-antigravity
 
 ---
 
