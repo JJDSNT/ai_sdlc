@@ -73,3 +73,5 @@
 
 ## Explorar depois
 - ComfyUI — https://github.com/comfy-org/ComfyUI
+https://github.com/artokun/comfyui-mcp
+https://github.com/joenorton/comfyui-mcp-server
