@@ -4,21 +4,28 @@
 - Ollama — https://github.com/ollama/ollama
 - TrustGraph — https://github.com/trustgraph-ai/trustgraph
 - OpenViking — https://github.com/volcengine/OpenViking
+- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
 
 ## Coding assistido
 - Claude Code — https://github.com/anthropics/claude-code
 - Claude Code Ultimate Guide — https://github.com/FlorianBruniaux/claude-code-ultimate-guide
+- Claude Labbook — https://github.com/anthonylee991/claude-labbook
 
-## Agentes / Multi-agent
+## Agentes / Multi-agent / Swarms
 - DeepAgents — https://github.com/langchain-ai/deepagents
 - Open-SWE — https://github.com/langchain-ai/open-swe
 - Swarms — https://github.com/kyegomez/swarms
 - GitAgent — https://github.com/open-gitagent/gitagent
+- ClawTeam — https://github.com/HKUDS/ClawTeam
 
 ## RAG / Memória / Contexto
 - Hindsight — https://github.com/vectorize-io/hindsight
 - LightRAG — https://lnkd.in/enFers4V
-- Claude Mem — https://lnkd.in/ebzS_SMz
+- Claude Mem (plugin) — https://github.com/thedotmack/claude-mem
+- Claude Mem (ecosystem) — https://lnkd.in/ebzS_SMz
+
+## Context / Evolution layer (next-gen agents)
+- OpenSpace — https://github.com/HKUDS/OpenSpace
 
 ## OpenClaw ecosystem
 - Core:
