@@ -1,77 +1,127 @@
-# 🧠 AI Stack (Agents / Coding / Infra)
+# 🧠 AI Stack (by ecosystem)
 
-## Infra / Base
-- Ollama — https://github.com/ollama/ollama
-- TrustGraph — https://github.com/trustgraph-ai/trustgraph
-- OpenViking — https://github.com/volcengine/OpenViking
-- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
+---
 
-## Coding assistido
+## 🟢 Claude Code ecosystem (terminal AI OS)
+
+### Core
 - Claude Code — https://github.com/anthropics/claude-code
-- Claude Code Ultimate Guide — https://github.com/FlorianBruniaux/claude-code-ultimate-guide
+- Superpowers — https://github.com/obra/superpowers
+
+### Memory / Context
+- Claude Mem — https://github.com/thedotmack/claude-mem
+- LightRAG — https://github.com/hkuds/lightrag
+
+### Workflow / Continuity
+- Get Shit Done — https://lnkd.in/eNfz5JtY
 - Claude Labbook — https://github.com/anthonylee991/claude-labbook
 
-## Agentes / Multi-agent / Swarms
+### Quality / Output control
+- UI-UX Pro Max — https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+
+### Integrations
+- n8n MCP — https://github.com/czlonkowski/n8n-mcp
+
+### Knowledge / Docs
+- Understand Anything — https://github.com/Lum1104/Understand-Anything
+
+### Meta / Extensions
+- Everything Claude Code — https://github.com/affaan-m/everything-claude-code
+- Obsidian Skills — https://github.com/kepano/obsidian-skills
+
+---
+
+## 🟡 Letta ecosystem (stateful agents OS)
+
+### Core
+- Letta Code — https://github.com/letta-ai/letta
+
+👉 alternativa direta ao Claude Code + Mem
+👉 foco em agentes com memória persistente
+
+---
+
+## 🔵 LangChain / Agent frameworks
+
+### Core
 - DeepAgents — https://github.com/langchain-ai/deepagents
 - Open-SWE — https://github.com/langchain-ai/open-swe
-- Swarms — https://github.com/kyegomez/swarms
+
+### Extensions
 - GitAgent — https://github.com/open-gitagent/gitagent
-- ClawTeam — https://github.com/HKUDS/ClawTeam
+- Agency Agents — https://github.com/msitarzewski/agency-agents
+- RTK — https://github.com/rtk-ai/rtk
 
-## RAG / Memória / Contexto
-- Hindsight — https://github.com/vectorize-io/hindsight
+---
+
+## 🟣 HKUDS ecosystem (RAG + swarm research)
+
 - LightRAG — https://github.com/hkuds/lightrag
-- Claude Mem — https://github.com/thedotmack/claude-mem
-
-## Context / Evolution layer
+- ClawTeam — https://github.com/HKUDS/ClawTeam
 - OpenSpace — https://github.com/HKUDS/OpenSpace
 
-## OpenClaw ecosystem
-- Core:
-  - OpenClaw — https://github.com/openclaw/openclaw
-- Orquestração:
-  - Antfarm — https://github.com/snarktank/antfarm
-  - Clawith — https://github.com/dataelement/Clawith
-  - Paperclip — https://github.com/paperclipai/paperclip
-- Interface:
-  - ClawX — https://github.com/ValueCell-ai/ClawX
+---
 
-## Infra + agentes
+## 🟠 OpenClaw ecosystem (agent OS attempt)
+
+- OpenClaw — https://github.com/openclaw/openclaw
+- Antfarm — https://github.com/snarktank/antfarm
+- Clawith — https://github.com/dataelement/Clawith
+- Paperclip — https://github.com/paperclipai/paperclip
+- ClawX — https://github.com/ValueCell-ai/ClawX
+
+---
+
+## 🔴 Multi-agent orchestration / swarm infra
+
+- Scion — https://github.com/GoogleCloudPlatform/scion
+
+👉 agentes paralelos em containers
+👉 orchestration real (nível infra)
+
+---
+
+## 🧩 Agent UI / frontend layer
+
+- CopilotKit — https://github.com/CopilotKit/CopilotKit
+- LangChain OpenUI — https://docs.langchain.com/oss/javascript/langchain/frontend/integrations/openui
+
+👉 camada de UI para agentes (chat + generative UI)
+
+---
+
+## ⚙️ Infra (agnostic)
+
+- Ollama — https://github.com/ollama/ollama
+- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
+- AgentGateway — https://github.com/agentgateway/agentgateway
+- TrustGraph — https://github.com/trustgraph-ai/trustgraph
+- OpenViking — https://github.com/volcengine/OpenViking
 - Docker Agent — https://github.com/docker/docker-agent
 
-## Workflow / Produtividade
-- Superpowers — https://github.com/obra/superpowers
+---
+
+## 🔁 Workflow / Productivity
+
 - Vibe Kanban — https://github.com/BloopAI/vibe-kanban
 - Get Shit Done — https://lnkd.in/eNfz5JtY
 
-## Qualidade / Controle
-- UI-UX Pro Max — https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
+---
 
-## Integrações
-- n8n MCP — https://github.com/czlonkowski/n8n-mcp
+## 🧠 RAG / Memory alternatives
 
-## Conhecimento / Docs
-- Understand Anything — https://github.com/Lum1104/Understand-Anything
-- Context Engineering Intro — https://github.com/coleam00/context-engineering-intro
+- Hindsight — https://github.com/vectorize-io/hindsight
 
-## Claude Code ecosystem
+---
 
-### Setup / Base
-- Everything Claude Code — https://github.com/affaan-m/everything-claude-code
+## 🧪 Tools / niche
 
-### Curadoria / coleções
-- Awesome Claude Code — https://github.com/hesreallyhim/awesome-claude-code
-- Awesome Agent Skills — https://github.com/VoltAgent/awesome-agent-skills
-- AY Skills Library — https://github.com/walidboulanouar/ay-skills
+- Code Review Graph — https://github.com/tirth8205/code-review-graph
 
-### Boas práticas / guias
-- Claude Code Best Practices — https://github.com/shanraisshan/claude-code-best-practice
-- Claude Code Hooks Mastery — https://github.com/disler/claude-code-hooks-mastery
+---
 
-### Extensões / nicho
-- Obsidian Skills — https://github.com/kepano/obsidian-skills
+## 🎨 Separate domain (generative media)
 
-## Explorar depois
 - ComfyUI — https://github.com/comfy-org/ComfyUI
-https://github.com/artokun/comfyui-mcp
-https://github.com/joenorton/comfyui-mcp-server
+- ComfyUI MCP — https://github.com/artokun/comfyui-mcp
+- ComfyUI MCP Server — https://github.com/joenorton/comfyui-mcp-server
