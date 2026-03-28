@@ -1,5 +1,3 @@
-// apps/agent/src/server.ts
-
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { taskRoutes } from "./routes/tasks.js";
