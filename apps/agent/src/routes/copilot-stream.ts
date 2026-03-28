@@ -1,5 +1,7 @@
+// apps/agent/src/routes/copilot-stream.ts
+
 import { randomUUID } from "node:crypto";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import {
   createTask,
   updateTask,
@@ -24,22 +26,28 @@ function getLastUserMessage(messages: CopilotMessage[]): string {
   const lastUser = [...messages]
     .reverse()
     .find(
-      (m) =>
-        m.role === "user" &&
-        typeof m.content === "string" &&
-        m.content.trim().length > 0
+      (message) =>
+        message.role === "user" &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0
     );
 
   return lastUser?.content?.trim() ?? "";
 }
 
-function sendEvent(reply: any, event: string, data: unknown) {
+function normalizeThreadId(threadId?: string): string {
+  const value = threadId?.trim();
+  if (value) return value;
+  return `thread_${randomUUID().replace(/-/g, "")}`;
+}
+
+function sendEvent(reply: FastifyReply, data: unknown) {
   if (reply.raw.destroyed || reply.raw.writableEnded) {
     return;
   }
 
-  reply.raw.write(`event: ${event}\n`);
-  reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+  const payload = JSON.stringify(data);
+  reply.raw.write(`data: ${payload}\n\n`);
 }
 
 export async function registerCopilotStreamRoute(app: FastifyInstance) {
@@ -60,6 +68,7 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
       });
     }
 
+    const effectiveThreadId = normalizeThreadId(body.threadId);
     const now = new Date().toISOString();
 
     const task = await createTask({
@@ -67,7 +76,7 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
       kind: "chat",
       status: "pending",
       input: {
-        threadId: body.threadId,
+        threadId: effectiveThreadId,
         sessionId: body.sessionId,
         messages: body.messages,
       },
@@ -75,7 +84,9 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
       updatedAt: now,
     });
 
-    reply.raw.setHeader("Content-Type", "text/event-stream");
+    const assistantMessageId = `msg_${randomUUID().replace(/-/g, "")}`;
+
+    reply.raw.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
     reply.raw.setHeader("Connection", "keep-alive");
     reply.raw.setHeader("X-Accel-Buffering", "no");
@@ -86,15 +97,20 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
 
     reply.raw.write("retry: 3000\n\n");
 
-    sendEvent(reply, "RUN_STARTED", {
+    sendEvent(reply, {
       type: "RUN_STARTED",
       runId: task.id,
-      taskId: task.id,
-      threadId: body.threadId,
+      threadId: effectiveThreadId,
     });
 
     let textStarted = false;
     let closed = false;
+
+    const keepAlive = setInterval(() => {
+      if (!reply.raw.destroyed && !reply.raw.writableEnded) {
+        reply.raw.write(": keep-alive\n\n");
+      }
+    }, 15000);
 
     const cleanup = () => {
       if (closed) return;
@@ -103,9 +119,21 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
       clearInterval(keepAlive);
       unsubscribe();
 
-      if (!reply.raw.writableEnded) {
+      if (!reply.raw.destroyed && !reply.raw.writableEnded) {
         reply.raw.end();
       }
+    };
+
+    const ensureTextStarted = () => {
+      if (textStarted) return;
+
+      textStarted = true;
+
+      sendEvent(reply, {
+        type: "TEXT_MESSAGE_START",
+        messageId: assistantMessageId,
+        role: "assistant",
+      });
     };
 
     const unsubscribe = subscribeToTaskEvents(task.id, (event: TaskEvent) => {
@@ -115,28 +143,14 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
       }
 
       switch (event.type) {
-        case "task.running": {
-          sendEvent(reply, "STATE_SNAPSHOT", {
-            type: "STATE_SNAPSHOT",
-            state: "running",
-            taskId: task.id,
-          });
-          break;
-        }
-
         case "task.output.delta": {
-          if (!textStarted) {
-            textStarted = true;
-            sendEvent(reply, "TEXT_MESSAGE_START", {
-              type: "TEXT_MESSAGE_START",
-              messageId: task.id,
-              role: "assistant",
-            });
-          }
+          if (!event.chunk) break;
 
-          sendEvent(reply, "TEXT_MESSAGE_CONTENT", {
+          ensureTextStarted();
+
+          sendEvent(reply, {
             type: "TEXT_MESSAGE_CONTENT",
-            messageId: task.id,
+            messageId: assistantMessageId,
             delta: event.chunk,
           });
           break;
@@ -148,32 +162,27 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
             event.task.output?.output ??
             "";
 
-          if (!textStarted) {
-            sendEvent(reply, "TEXT_MESSAGE_START", {
-              type: "TEXT_MESSAGE_START",
-              messageId: event.task.output?.messageId ?? task.id,
-              role: "assistant",
-            });
+          if (!textStarted && content) {
+            ensureTextStarted();
 
-            if (content) {
-              sendEvent(reply, "TEXT_MESSAGE_CONTENT", {
-                type: "TEXT_MESSAGE_CONTENT",
-                messageId: event.task.output?.messageId ?? task.id,
-                delta: content,
-              });
-            }
+            sendEvent(reply, {
+              type: "TEXT_MESSAGE_CONTENT",
+              messageId: assistantMessageId,
+              delta: content,
+            });
           }
 
-          sendEvent(reply, "TEXT_MESSAGE_END", {
-            type: "TEXT_MESSAGE_END",
-            messageId: event.task.output?.messageId ?? task.id,
-          });
+          if (textStarted) {
+            sendEvent(reply, {
+              type: "TEXT_MESSAGE_END",
+              messageId: assistantMessageId,
+            });
+          }
 
-          sendEvent(reply, "RUN_FINISHED", {
+          sendEvent(reply, {
             type: "RUN_FINISHED",
             runId: task.id,
-            taskId: task.id,
-            sessionId: event.task.output?.sessionId,
+            threadId: effectiveThreadId,
           });
 
           cleanup();
@@ -181,10 +190,15 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
         }
 
         case "task.failed": {
-          sendEvent(reply, "ERROR", {
-            type: "ERROR",
-            runId: task.id,
-            taskId: task.id,
+          if (textStarted) {
+            sendEvent(reply, {
+              type: "TEXT_MESSAGE_END",
+              messageId: assistantMessageId,
+            });
+          }
+
+          sendEvent(reply, {
+            type: "RUN_ERROR",
             message: event.task.error ?? "Task failed",
           });
 
@@ -196,12 +210,6 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
           break;
       }
     });
-
-    const keepAlive = setInterval(() => {
-      if (!reply.raw.destroyed && !reply.raw.writableEnded) {
-        reply.raw.write(": keep-alive\n\n");
-      }
-    }, 15000);
 
     request.raw.on("close", cleanup);
     request.raw.on("error", cleanup);
@@ -223,10 +231,19 @@ export async function registerCopilotStreamRoute(app: FastifyInstance) {
         const result = await runChatTask({
           prompt,
           sessionId: body.sessionId,
-          threadId: body.threadId,
+          threadId: effectiveThreadId,
+          onDelta: (chunk) => {
+            if (!chunk) return;
+
+            emitTaskEvent(task.id, {
+              type: "task.output.delta",
+              taskId: task.id,
+              chunk,
+            });
+          },
         });
 
-        if (result.output) {
+        if (!textStarted && result.output) {
           emitTaskEvent(task.id, {
             type: "task.output.delta",
             taskId: task.id,

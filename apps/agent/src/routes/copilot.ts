@@ -1,5 +1,7 @@
+// apps/agent/src/routes/copilot.ts
+
 import { randomUUID } from "node:crypto";
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createTask, updateTask, emitTaskEvent } from "../task-store.js";
 import { runChatTask } from "../services/run-chat-task.js";
 
@@ -14,125 +16,152 @@ type CopilotRunBody = {
   messages: CopilotMessage[];
 };
 
+function isValidMessage(value: unknown): value is CopilotMessage {
+  if (!value || typeof value !== "object") return false;
+
+  const message = value as Partial<CopilotMessage>;
+
+  return (
+    typeof message.role === "string" &&
+    ["system", "user", "assistant", "tool"].includes(message.role) &&
+    typeof message.content === "string"
+  );
+}
+
 function getLastUserMessage(messages: CopilotMessage[]): string {
   const lastUser = [...messages]
     .reverse()
     .find(
-      (m) =>
-        m.role === "user" &&
-        typeof m.content === "string" &&
-        m.content.trim().length > 0
+      (message) =>
+        message.role === "user" &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0
     );
 
-  return lastUser?.content?.trim() ?? "";
+  return lastUser?.content.trim() ?? "";
 }
 
-export async function registerCopilotRoutes(app: FastifyInstance) {
-  app.post("/copilot/run", async (request, reply) => {
-    const body = (request.body ?? {}) as Partial<CopilotRunBody>;
+async function handleCopilotRun(
+  request: FastifyRequest<{ Body: Partial<CopilotRunBody> }>,
+  reply: FastifyReply
+) {
+  const body = request.body ?? {};
 
-    if (!Array.isArray(body.messages) || body.messages.length === 0) {
-      return reply.code(400).send({
-        error: "messages is required",
-      });
-    }
+  if (!Array.isArray(body.messages) || body.messages.length === 0) {
+    return reply.code(400).send({
+      error: "messages is required",
+    });
+  }
 
-    const prompt = getLastUserMessage(body.messages);
+  const invalidMessage = body.messages.find((message) => !isValidMessage(message));
 
-    if (!prompt) {
-      return reply.code(400).send({
-        error: "No user message found",
-      });
-    }
+  if (invalidMessage) {
+    return reply.code(400).send({
+      error: "messages must be an array of valid Copilot messages",
+    });
+  }
 
-    const now = new Date().toISOString();
+  const messages = body.messages;
+  const prompt = getLastUserMessage(messages);
 
-    const task = await createTask({
-      id: randomUUID(),
-      kind: "chat",
-      status: "pending",
-      input: {
-        threadId: body.threadId,
-        sessionId: body.sessionId,
-        messages: body.messages,
-      },
-      createdAt: now,
-      updatedAt: now,
+  if (!prompt) {
+    return reply.code(400).send({
+      error: "No user message found",
+    });
+  }
+
+  const now = new Date().toISOString();
+
+  const task = await createTask({
+    id: randomUUID(),
+    kind: "chat",
+    status: "pending",
+    input: {
+      threadId: body.threadId,
+      sessionId: body.sessionId,
+      messages,
+    },
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  try {
+    const runningTask = await updateTask(task.id, {
+      status: "running",
     });
 
-    try {
-      const runningTask = await updateTask(task.id, {
-        status: "running",
+    if (runningTask) {
+      emitTaskEvent(task.id, {
+        type: "task.running",
+        task: runningTask,
       });
+    }
 
-      if (runningTask) {
-        emitTaskEvent(task.id, {
-          type: "task.running",
-          task: runningTask,
-        });
-      }
+    const result = await runChatTask({
+      prompt,
+      sessionId: body.sessionId,
+      threadId: body.threadId,
+    });
 
-      const result = await runChatTask({
-        prompt,
-        sessionId: body.sessionId,
-        threadId: body.threadId,
-      });
-
-      const completedTask = await updateTask(task.id, {
-        status: "completed",
-        output: {
-          sessionId: result.sessionId,
-          messageId: result.message.messageId,
-          finalMessage: {
-            role: "assistant",
-            content: result.output,
-          },
-          reasoning: result.message.reasoning ?? [],
-          tools: result.message.tools ?? [],
-          rawParts: result.message.parts ?? [],
-        },
-      });
-
-      if (completedTask) {
-        emitTaskEvent(task.id, {
-          type: "task.completed",
-          task: completedTask,
-        });
-      }
-
-      return reply.send({
-        taskId: task.id,
-        status: "completed",
-        message: {
+    const completedTask = await updateTask(task.id, {
+      status: "completed",
+      output: {
+        sessionId: result.sessionId,
+        messageId: result.message.messageId,
+        finalMessage: {
           role: "assistant",
           content: result.output,
         },
-        metadata: {
-          sessionId: result.sessionId,
-          messageId: result.message.messageId,
-        },
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Chat task failed";
+        reasoning: result.message.reasoning ?? [],
+        tools: result.message.tools ?? [],
+        rawParts: result.message.parts ?? [],
+      },
+    });
 
-      const failedTask = await updateTask(task.id, {
-        status: "failed",
-        error: message,
-      });
-
-      if (failedTask) {
-        emitTaskEvent(task.id, {
-          type: "task.failed",
-          task: failedTask,
-        });
-      }
-
-      return reply.code(500).send({
-        taskId: task.id,
-        status: "failed",
-        error: message,
+    if (completedTask) {
+      emitTaskEvent(task.id, {
+        type: "task.completed",
+        task: completedTask,
       });
     }
-  });
+
+    return reply.send({
+      taskId: task.id,
+      status: "completed",
+      message: {
+        role: "assistant",
+        content: result.output,
+      },
+      metadata: {
+        sessionId: result.sessionId,
+        messageId: result.message.messageId,
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Chat task failed";
+
+    const failedTask = await updateTask(task.id, {
+      status: "failed",
+      error: message,
+    });
+
+    if (failedTask) {
+      emitTaskEvent(task.id, {
+        type: "task.failed",
+        task: failedTask,
+      });
+    }
+
+    return reply.code(500).send({
+      taskId: task.id,
+      status: "failed",
+      error: message,
+    });
+  }
+}
+
+export async function registerCopilotRoutes(app: FastifyInstance) {
+  app.post("/copilot", handleCopilotRun);
+  app.post("/copilot/run", handleCopilotRun);
 }

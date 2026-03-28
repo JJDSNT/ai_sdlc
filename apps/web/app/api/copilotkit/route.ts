@@ -1,3 +1,5 @@
+// app/api/copilotkit/route.ts
+
 import {
   CopilotRuntime,
   ExperimentalEmptyAdapter,
@@ -5,15 +7,21 @@ import {
 } from "@copilotkit/runtime";
 import { HttpAgent } from "@ag-ui/client";
 
-const agentUrl =
-  process.env.AGENT_URL?.trim() ||
-  process.env.NEXT_PUBLIC_AGENT_URL?.trim() ||
-  "http://localhost:3001";
+function getAgentUrl() {
+  const rawUrl =
+    process.env.AGENT_URL?.trim() ||
+    process.env.NEXT_PUBLIC_AGENT_URL?.trim() ||
+    "http://localhost:3001";
+
+  return rawUrl.replace(/\/+$/, "");
+}
+
+const agentUrl = getAgentUrl();
 
 const runtime = new CopilotRuntime({
   agents: {
     default: new HttpAgent({
-      url: `${agentUrl}/copilot`,
+      url: `${agentUrl}/copilot/stream`,
     }),
   },
 });

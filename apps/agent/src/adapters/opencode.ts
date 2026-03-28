@@ -1,3 +1,5 @@
+// apps/agent/src/adapters/opencode.ts
+
 export type OpenCodeSession = {
   id: string;
   title: string;
@@ -50,6 +52,10 @@ export type CreateSessionInput = {
 export type SendMessageInput = {
   sessionId: string;
   text: string;
+};
+
+export type SendMessageStreamInput = SendMessageInput & {
+  onDelta?: (chunk: string) => void;
 };
 
 export type RunShellInput = {
@@ -121,7 +127,7 @@ export type GetDiffInput = {
 export class OpenCodeApiError extends Error {
   readonly status?: number;
   readonly body?: string;
-  readonly cause?: unknown;
+  override readonly cause?: unknown;
 
   constructor(params: {
     message: string;
@@ -204,6 +210,159 @@ export function normalizeAssistantMessage(
   };
 }
 
+function buildMessageRequestBody(text: string) {
+  return JSON.stringify({
+    parts: [
+      {
+        type: "text",
+        text,
+      },
+    ],
+  });
+}
+
+function tryParseJson(value: string): unknown | undefined {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+function extractDeltaFromUnknown(value: unknown): string | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  const directCandidates = [
+    record.delta,
+    record.text,
+    record.content,
+    record.chunk,
+    record.output,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate === "string" && candidate.length > 0) {
+      return candidate;
+    }
+  }
+
+  const nestedData = record.data;
+  if (nestedData && typeof nestedData === "object") {
+    const nested = nestedData as Record<string, unknown>;
+    const nestedCandidates = [
+      nested.delta,
+      nested.text,
+      nested.content,
+      nested.chunk,
+      nested.output,
+    ];
+
+    for (const candidate of nestedCandidates) {
+      if (typeof candidate === "string" && candidate.length > 0) {
+        return candidate;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function splitSseEvents(buffer: string): { events: string[]; rest: string } {
+  const normalized = buffer.replace(/\r\n/g, "\n");
+  const parts = normalized.split("\n\n");
+
+  if (parts.length === 1) {
+    return {
+      events: [],
+      rest: buffer,
+    };
+  }
+
+  const rest = parts.pop() ?? "";
+
+  return {
+    events: parts,
+    rest,
+  };
+}
+
+function parseSseEventBlock(block: string): string[] {
+  const deltas: string[] = [];
+  const lines = block.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith(":")) {
+      continue;
+    }
+
+    if (!trimmed.startsWith("data:")) {
+      continue;
+    }
+
+    const rawData = trimmed.slice(5).trim();
+
+    if (!rawData) {
+      continue;
+    }
+
+    const parsed = tryParseJson(rawData);
+    const delta = extractDeltaFromUnknown(parsed);
+
+    if (delta) {
+      deltas.push(delta);
+      continue;
+    }
+
+    if (typeof parsed === "string" && parsed.trim()) {
+      deltas.push(parsed.trim());
+      continue;
+    }
+
+    if (!parsed) {
+      deltas.push(rawData);
+    }
+  }
+
+  return deltas;
+}
+
+function parseNdjsonLines(buffer: string): { deltas: string[]; rest: string } {
+  const normalized = buffer.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
+  const rest = lines.pop() ?? "";
+  const deltas: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const parsed = tryParseJson(trimmed);
+    const delta = extractDeltaFromUnknown(parsed);
+
+    if (delta) {
+      deltas.push(delta);
+      continue;
+    }
+
+    if (typeof parsed === "string" && parsed.trim()) {
+      deltas.push(parsed.trim());
+      continue;
+    }
+
+    if (!parsed) {
+      deltas.push(trimmed);
+    }
+  }
+
+  return { deltas, rest };
+}
+
 export class OpenCodeClient {
   constructor(private readonly baseUrl: string) {}
 
@@ -260,15 +419,9 @@ export class OpenCodeClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        body: JSON.stringify({
-          parts: [
-            {
-              type: "text",
-              text: input.text,
-            },
-          ],
-        }),
+        body: buildMessageRequestBody(input.text),
       }
     );
 
@@ -282,6 +435,126 @@ export class OpenCodeClient {
 
     const payload = (await response.json()) as OpenCodeMessageResponse;
     return normalizeAssistantMessage(payload);
+  }
+
+  async sendMessageStream(
+    input: SendMessageStreamInput
+  ): Promise<NormalizedAssistantMessage> {
+    const response = await fetch(
+      joinUrl(this.baseUrl, `/session/${input.sessionId}/message`),
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream, application/x-ndjson, application/json, text/plain",
+        },
+        body: buildMessageRequestBody(input.text),
+      }
+    );
+
+    if (!response.ok) {
+      throw new OpenCodeApiError({
+        message: "Failed to send message to OpenCode session",
+        status: response.status,
+        body: await readErrorBody(response),
+      });
+    }
+
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+    if (!response.body) {
+      const payload = (await response.json()) as OpenCodeMessageResponse;
+      const normalized = normalizeAssistantMessage(payload);
+
+      if (normalized.text) {
+        input.onDelta?.(normalized.text);
+      }
+
+      return normalized;
+    }
+
+    if (contentType.includes("application/json")) {
+      const payload = (await response.json()) as OpenCodeMessageResponse;
+      const normalized = normalizeAssistantMessage(payload);
+
+      if (normalized.text) {
+        input.onDelta?.(normalized.text);
+      }
+
+      return normalized;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    let buffer = "";
+    let accumulatedText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      if (contentType.includes("text/event-stream")) {
+        const { events, rest } = splitSseEvents(buffer);
+        buffer = rest;
+
+        for (const eventBlock of events) {
+          const deltas = parseSseEventBlock(eventBlock);
+
+          for (const delta of deltas) {
+            accumulatedText += delta;
+            input.onDelta?.(delta);
+          }
+        }
+
+        continue;
+      }
+
+      if (contentType.includes("application/x-ndjson")) {
+        const { deltas, rest } = parseNdjsonLines(buffer);
+        buffer = rest;
+
+        for (const delta of deltas) {
+          accumulatedText += delta;
+          input.onDelta?.(delta);
+        }
+
+        continue;
+      }
+
+      // Fallback genérico para texto puro/chunked.
+      if (buffer) {
+        accumulatedText += buffer;
+        input.onDelta?.(buffer);
+        buffer = "";
+      }
+    }
+
+    const remaining = buffer.trim();
+    if (remaining) {
+      const parsed = tryParseJson(remaining);
+      const delta = extractDeltaFromUnknown(parsed);
+
+      if (delta) {
+        accumulatedText += delta;
+        input.onDelta?.(delta);
+      } else if (!parsed) {
+        accumulatedText += remaining;
+        input.onDelta?.(remaining);
+      }
+    }
+
+    return {
+      text: accumulatedText.trim(),
+      reasoning: [],
+      tools: [],
+      parts: [],
+      sessionId: input.sessionId,
+      role: "assistant",
+    };
   }
 
   async runShell(input: RunShellInput): Promise<NormalizedAssistantMessage> {

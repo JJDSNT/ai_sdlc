@@ -1,3 +1,5 @@
+// apps/agent/src/services/run-chat-task.ts
+
 import {
   createOpenCodeClient,
   OpenCodeApiError,
@@ -9,6 +11,7 @@ export type RunChatTaskInput = {
   sessionId?: string;
   threadId?: string;
   title?: string;
+  onDelta?: (chunk: string) => void;
 };
 
 export type RunChatTaskResult = {
@@ -18,42 +21,65 @@ export type RunChatTaskResult = {
 };
 
 export class RunChatTaskError extends Error {
-  constructor(message: string, public cause?: unknown) {
+  override cause?: unknown;
+
+  constructor(message: string, cause?: unknown) {
     super(message);
     this.name = "RunChatTaskError";
+    this.cause = cause;
   }
+}
+
+function buildSessionTitle(input: RunChatTaskInput): string {
+  if (input.title?.trim()) {
+    return input.title.trim();
+  }
+
+  if (input.threadId?.trim()) {
+    return `ai_sdlc chat:${input.threadId.trim()}`;
+  }
+
+  return "ai_sdlc chat";
 }
 
 export async function runChatTask(
   input: RunChatTaskInput
 ): Promise<RunChatTaskResult> {
   const client = createOpenCodeClient();
+  const prompt = input.prompt?.trim();
 
-  if (!input.prompt?.trim()) {
+  if (!prompt) {
     throw new RunChatTaskError("Prompt is required");
   }
 
   try {
-    let sessionId = input.sessionId;
+    let sessionId = input.sessionId?.trim();
 
     if (!sessionId) {
       const session = await client.createSession({
-        title:
-          input.title ??
-          (input.threadId ? `ai_sdlc chat:${input.threadId}` : "ai_sdlc chat"),
+        title: buildSessionTitle(input),
       });
 
       sessionId = session.id;
     }
 
-    const message = await client.sendMessage({
+    const message = await client.sendMessageStream({
       sessionId,
-      text: input.prompt.trim(),
+      text: prompt,
+      onDelta: input.onDelta,
     });
+
+    const output = message.text?.trim() || "Execução concluída sem texto de saída";
+
+    // Fallback atual: como o OpenCode ainda responde de forma bloqueante,
+    // emitimos a saída final inteira uma única vez.
+    if (output) {
+      input.onDelta?.(output);
+    }
 
     return {
       sessionId,
-      output: message.text?.trim() || "Execução concluída sem texto de saída",
+      output,
       message,
     };
   } catch (error) {
