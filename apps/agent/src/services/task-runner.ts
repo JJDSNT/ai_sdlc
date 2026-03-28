@@ -1,5 +1,5 @@
 import type { Task } from "../task.js";
-import { updateTask } from "../task-store.js";
+import { emitTaskEvent, getTask, updateTask } from "../task-store.js";
 import { runChatTask } from "./run-chat-task.js";
 import { runRepoInspectTask } from "./run-repo-inspect-task.js";
 import { runRepoCommandTask } from "./run-repo-command-task.js";
@@ -8,11 +8,38 @@ function getAllowedRepoRoot() {
   return process.env.REPO_ALLOWED_ROOT?.trim() || undefined;
 }
 
+async function emitCurrentTask(taskId: string, type: "task.running" | "task.completed" | "task.failed") {
+  const current = await getTask(taskId);
+
+  if (!current) return;
+
+  emitTaskEvent(taskId, {
+    type,
+    task: current,
+  });
+}
+
+function emitOutputDelta(taskId: string, text: string) {
+  if (!text.trim()) return;
+
+  for (const chunk of text.split("\n")) {
+    if (!chunk.trim()) continue;
+
+    emitTaskEvent(taskId, {
+      type: "task.output.delta",
+      taskId,
+      chunk,
+    });
+  }
+}
+
 export async function executeTask(task: Task) {
   try {
-    updateTask(task.id, {
+    await updateTask(task.id, {
       status: "running",
     });
+
+    await emitCurrentTask(task.id, "task.running");
 
     if (task.kind === "chat") {
       if (!task.prompt) {
@@ -21,7 +48,9 @@ export async function executeTask(task: Task) {
 
       const result = await runChatTask(task.prompt);
 
-      updateTask(task.id, {
+      emitOutputDelta(task.id, result.output);
+
+      await updateTask(task.id, {
         status: "succeeded",
         sessionId: result.sessionId,
         output: {
@@ -31,6 +60,7 @@ export async function executeTask(task: Task) {
         },
       });
 
+      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
@@ -50,7 +80,9 @@ export async function executeTask(task: Task) {
         repositoryRoot: task.target.path,
       });
 
-      updateTask(task.id, {
+      emitOutputDelta(task.id, result.output);
+
+      await updateTask(task.id, {
         status: "succeeded",
         sessionId: result.sessionId,
         output: {
@@ -63,6 +95,7 @@ export async function executeTask(task: Task) {
         },
       });
 
+      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
@@ -94,7 +127,17 @@ export async function executeTask(task: Task) {
         allowedRoot: getAllowedRepoRoot(),
       });
 
-      updateTask(task.id, {
+      emitTaskEvent(task.id, {
+        type: "task.command.resolved",
+        taskId: task.id,
+        command: result.resolvedCommand.command,
+        ecosystem: result.repository.ecosystem,
+        reason: result.resolvedCommand.reason,
+      });
+
+      emitOutputDelta(task.id, result.output);
+
+      await updateTask(task.id, {
         status: "succeeded",
         sessionId: result.sessionId,
         command: {
@@ -114,17 +157,20 @@ export async function executeTask(task: Task) {
         },
       });
 
+      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
     throw new Error(`Unsupported task kind: ${task.kind}`);
   } catch (error) {
-    updateTask(task.id, {
+    await updateTask(task.id, {
       status: "failed",
       error: {
         message:
           error instanceof Error ? error.message : "Unknown execution error",
       },
     });
+
+    await emitCurrentTask(task.id, "task.failed");
   }
 }

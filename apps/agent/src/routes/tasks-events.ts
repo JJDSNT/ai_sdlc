@@ -1,11 +1,15 @@
 import type { FastifyInstance } from "fastify";
-import { getTask, subscribeToTask } from "../task-store.js";
+import {
+  getTask,
+  subscribeToTaskEvents,
+  type TaskEvent,
+} from "../task-store.js";
 
 export async function taskEventsRoutes(app: FastifyInstance) {
   app.get("/tasks/:id/events", async (request, reply) => {
     const { id } = request.params as { id: string };
 
-    const task = getTask(id);
+    const task = await getTask(id);
 
     if (!task) {
       return reply.status(404).send({
@@ -16,7 +20,7 @@ export async function taskEventsRoutes(app: FastifyInstance) {
     }
 
     reply.raw.setHeader("Content-Type", "text/event-stream");
-    reply.raw.setHeader("Cache-Control", "no-cache");
+    reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
     reply.raw.setHeader("Connection", "keep-alive");
 
     if (typeof reply.raw.flushHeaders === "function") {
@@ -30,16 +34,8 @@ export async function taskEventsRoutes(app: FastifyInstance) {
 
     sendEvent("task.snapshot", task);
 
-    const unsubscribe = subscribeToTask(id, (updatedTask) => {
-      sendEvent("task.updated", updatedTask);
-
-      if (
-        updatedTask.status === "succeeded" ||
-        updatedTask.status === "failed" ||
-        updatedTask.status === "cancelled"
-      ) {
-        sendEvent("task.completed", updatedTask);
-      }
+    const unsubscribe = subscribeToTaskEvents(id, (event: TaskEvent) => {
+      sendEvent(event.type, event);
     });
 
     const keepAlive = setInterval(() => {

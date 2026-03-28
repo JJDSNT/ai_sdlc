@@ -85,7 +85,7 @@ function createBaseTask(input: CreateTaskInput): Task {
 export async function taskRoutes(app: FastifyInstance) {
   app.get("/tasks", async (_request, reply) => {
     return reply.send({
-      tasks: listTasks(),
+      tasks: await listTasks(),
     });
   });
 
@@ -100,7 +100,7 @@ export async function taskRoutes(app: FastifyInstance) {
       });
     }
 
-    const task = getTask(parsed.data.id);
+    const task = await getTask(parsed.data.id);
 
     if (!task) {
       return reply.status(404).send({
@@ -159,7 +159,7 @@ export async function taskRoutes(app: FastifyInstance) {
     }
 
     const task = createBaseTask(body);
-    saveTask(task);
+    await saveTask(task);
 
     queueMicrotask(() => {
       void executeTask(task);
