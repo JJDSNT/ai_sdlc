@@ -22,30 +22,54 @@ export async function taskEventsRoutes(app: FastifyInstance) {
     reply.raw.setHeader("Content-Type", "text/event-stream");
     reply.raw.setHeader("Cache-Control", "no-cache, no-transform");
     reply.raw.setHeader("Connection", "keep-alive");
+    reply.raw.setHeader("X-Accel-Buffering", "no");
 
     if (typeof reply.raw.flushHeaders === "function") {
       reply.raw.flushHeaders();
     }
 
     const sendEvent = (event: string, data: unknown) => {
+      if (reply.raw.destroyed || reply.raw.writableEnded) {
+        return;
+      }
+
       reply.raw.write(`event: ${event}\n`);
       reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
     };
 
-    sendEvent("task.snapshot", task);
+    reply.raw.write("retry: 3000\n\n");
+
+    sendEvent("task.snapshot", {
+      type: "task.snapshot",
+      task,
+    });
 
     const unsubscribe = subscribeToTaskEvents(id, (event: TaskEvent) => {
       sendEvent(event.type, event);
     });
 
     const keepAlive = setInterval(() => {
-      reply.raw.write(": keep-alive\n\n");
+      if (!reply.raw.destroyed && !reply.raw.writableEnded) {
+        reply.raw.write(": keep-alive\n\n");
+      }
     }, 15000);
 
-    request.raw.on("close", () => {
+    let closed = false;
+
+    const cleanup = () => {
+      if (closed) return;
+      closed = true;
+
       clearInterval(keepAlive);
       unsubscribe();
-      reply.raw.end();
-    });
+
+      if (!reply.raw.writableEnded) {
+        reply.raw.end();
+      }
+    };
+
+    request.raw.on("close", cleanup);
+    request.raw.on("error", cleanup);
+    reply.raw.on("error", cleanup);
   });
 }

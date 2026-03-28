@@ -1,6 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { taskRoutes } from "./routes/tasks.js";
+import { tasksRoutes } from "./routes/tasks.js";
 import { taskEventsRoutes } from "./routes/tasks-events.js";
 import { createOpenCodeClient } from "./adapters/opencode.js";
 
@@ -52,7 +52,7 @@ async function registerRoutes() {
     }
   });
 
-  await app.register(taskRoutes);
+  await app.register(tasksRoutes);
   await app.register(taskEventsRoutes);
 }
 

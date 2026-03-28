@@ -1,9 +1,10 @@
 import { EventEmitter } from "node:events";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Task } from "./task.js";
 
 const emitter = new EventEmitter();
+emitter.setMaxListeners(100);
 
 const DATA_DIR =
   process.env.AGENT_DATA_DIR?.trim() ||
@@ -17,6 +18,7 @@ let writeQueue: Promise<void> = Promise.resolve();
 
 export type TaskEvent =
   | { type: "task.created"; task: Task }
+  | { type: "task.snapshot"; task: Task }
   | { type: "task.running"; task: Task }
   | { type: "task.updated"; task: Task }
   | { type: "task.completed"; task: Task }
@@ -40,7 +42,9 @@ async function persistTasks() {
   const payload = JSON.stringify(Array.from(tasks.values()), null, 2);
 
   writeQueue = writeQueue.then(async () => {
-    await writeFile(TASKS_FILE, payload, "utf8");
+    const tempFile = `${TASKS_FILE}.tmp`;
+    await writeFile(tempFile, payload, "utf8");
+    await rename(tempFile, TASKS_FILE);
   });
 
   await writeQueue;
@@ -58,15 +62,27 @@ export async function loadTasks() {
     for (const task of parsed) {
       tasks.set(task.id, task);
     }
-  } catch {
-    // noop
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+
+    if (err.code === "ENOENT") {
+      hasLoaded = true;
+      return;
+    }
+
+    throw error;
   }
 
   hasLoaded = true;
 }
 
-export async function saveTask(task: Task) {
+export async function createTask(task: Task) {
   await loadTasks();
+
+  if (tasks.has(task.id)) {
+    throw new Error(`Task already exists: ${task.id}`);
+  }
+
   tasks.set(task.id, task);
   await persistTasks();
 
@@ -86,12 +102,15 @@ export async function getTask(taskId: string) {
 export async function listTasks() {
   await loadTasks();
 
-  return Array.from(tasks.values()).sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt)
+  return Array.from(tasks.values()).sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
-export async function updateTask(taskId: string, patch: Partial<Task>) {
+type MutableTaskPatch = Omit<Partial<Task>, "id" | "createdAt">;
+
+export async function updateTask(taskId: string, patch: MutableTaskPatch) {
   await loadTasks();
 
   const current = tasks.get(taskId);
@@ -109,24 +128,12 @@ export async function updateTask(taskId: string, patch: Partial<Task>) {
   tasks.set(taskId, next);
   await persistTasks();
 
-  emitter.emit(taskId, next);
   emitTaskEvent(taskId, {
     type: "task.updated",
     task: next,
   });
 
   return next;
-}
-
-export function subscribeToTask(
-  taskId: string,
-  listener: (task: Task) => void
-) {
-  emitter.on(taskId, listener);
-
-  return () => {
-    emitter.off(taskId, listener);
-  };
 }
 
 export function emitTaskEvent(taskId: string, event: TaskEvent) {

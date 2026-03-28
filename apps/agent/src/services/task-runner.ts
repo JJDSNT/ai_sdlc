@@ -8,50 +8,98 @@ function getAllowedRepoRoot() {
   return process.env.REPO_ALLOWED_ROOT?.trim() || undefined;
 }
 
-async function emitCurrentTask(taskId: string, type: "task.running" | "task.completed" | "task.failed") {
-  const current = await getTask(taskId);
+async function markTaskRunning(taskId: string) {
+  const task = await updateTask(taskId, {
+    status: "running",
+  });
 
-  if (!current) return;
+  if (!task) {
+    throw new Error(`Task not found: ${taskId}`);
+  }
 
   emitTaskEvent(taskId, {
-    type,
-    task: current,
+    type: "task.running",
+    task,
   });
+
+  return task;
+}
+
+async function markTaskCompleted(taskId: string, patch: Partial<Task>) {
+  const task = await updateTask(taskId, {
+    ...patch,
+    status: "succeeded",
+  });
+
+  if (!task) {
+    throw new Error(`Task not found: ${taskId}`);
+  }
+
+  emitTaskEvent(taskId, {
+    type: "task.completed",
+    task,
+  });
+
+  return task;
+}
+
+async function markTaskFailed(taskId: string, error: unknown) {
+  const task = await updateTask(taskId, {
+    status: "failed",
+    error: {
+      message:
+        error instanceof Error ? error.message : "Unknown execution error",
+      name: error instanceof Error ? error.name : "Error",
+      stack: error instanceof Error ? error.stack : undefined,
+    },
+  });
+
+  if (!task) {
+    throw new Error(`Task not found: ${taskId}`);
+  }
+
+  emitTaskEvent(taskId, {
+    type: "task.failed",
+    task,
+  });
+
+  return task;
 }
 
 function emitOutputDelta(taskId: string, text: string) {
-  if (!text.trim()) return;
+  if (!text) return;
 
-  for (const chunk of text.split("\n")) {
-    if (!chunk.trim()) continue;
-
-    emitTaskEvent(taskId, {
-      type: "task.output.delta",
-      taskId,
-      chunk,
-    });
-  }
+  emitTaskEvent(taskId, {
+    type: "task.output.delta",
+    taskId,
+    chunk: text,
+  });
 }
 
 export async function executeTask(task: Task) {
   try {
-    await updateTask(task.id, {
-      status: "running",
-    });
+    const current = await getTask(task.id);
 
-    await emitCurrentTask(task.id, "task.running");
+    if (!current) {
+      throw new Error(`Task not found: ${task.id}`);
+    }
 
-    if (task.kind === "chat") {
-      if (!task.prompt) {
+    if (current.status === "running" || current.status === "succeeded") {
+      return;
+    }
+
+    await markTaskRunning(task.id);
+
+    if (current.kind === "chat") {
+      if (!current.prompt) {
         throw new Error("Chat task requires prompt");
       }
 
-      const result = await runChatTask(task.prompt);
+      const result = await runChatTask(current.prompt);
 
       emitOutputDelta(task.id, result.output);
 
-      await updateTask(task.id, {
-        status: "succeeded",
+      await markTaskCompleted(task.id, {
         sessionId: result.sessionId,
         output: {
           text: result.output,
@@ -60,30 +108,28 @@ export async function executeTask(task: Task) {
         },
       });
 
-      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
-    if (task.kind === "repo-analyze") {
-      if (!task.prompt) {
+    if (current.kind === "repo-analyze") {
+      if (!current.prompt) {
         throw new Error("repo-analyze task requires prompt");
       }
 
-      if (!task.target || task.target.kind !== "local_path") {
+      if (!current.target || current.target.kind !== "local_path") {
         throw new Error(
           "repo-analyze requires target.kind = 'local_path' with valid path"
         );
       }
 
       const result = await runRepoInspectTask({
-        prompt: task.prompt,
-        repositoryRoot: task.target.path,
+        prompt: current.prompt,
+        repositoryRoot: current.target.path,
       });
 
       emitOutputDelta(task.id, result.output);
 
-      await updateTask(task.id, {
-        status: "succeeded",
+      await markTaskCompleted(task.id, {
         sessionId: result.sessionId,
         output: {
           text: result.output,
@@ -95,25 +141,24 @@ export async function executeTask(task: Task) {
         },
       });
 
-      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
-    if (task.kind === "repo-command") {
-      if (!task.target || task.target.kind !== "local_path") {
+    if (current.kind === "repo-command") {
+      if (!current.target || current.target.kind !== "local_path") {
         throw new Error(
           "repo-command requires target.kind = 'local_path' with valid path"
         );
       }
 
-      if (!task.command) {
+      if (!current.command) {
         throw new Error("repo-command requires command");
       }
 
       if (
-        task.command.intent === "custom" &&
-        (!task.command.customCommand ||
-          task.command.customCommand.trim().length === 0)
+        current.command.intent === "custom" &&
+        (!current.command.customCommand ||
+          current.command.customCommand.trim().length === 0)
       ) {
         throw new Error(
           "repo-command with intent = 'custom' requires customCommand"
@@ -121,10 +166,19 @@ export async function executeTask(task: Task) {
       }
 
       const result = await runRepoCommandTask({
-        repositoryRoot: task.target.path,
-        intent: task.command.intent,
-        customCommand: task.command.customCommand,
+        repositoryRoot: current.target.path,
+        intent: current.command.intent,
+        customCommand: current.command.customCommand,
         allowedRoot: getAllowedRepoRoot(),
+      });
+
+      await updateTask(task.id, {
+        command: {
+          ...current.command,
+          resolvedCommand: result.resolvedCommand.command,
+          ecosystem: result.repository.ecosystem,
+          reason: result.resolvedCommand.reason,
+        },
       });
 
       emitTaskEvent(task.id, {
@@ -137,11 +191,10 @@ export async function executeTask(task: Task) {
 
       emitOutputDelta(task.id, result.output);
 
-      await updateTask(task.id, {
-        status: "succeeded",
+      await markTaskCompleted(task.id, {
         sessionId: result.sessionId,
         command: {
-          ...task.command,
+          ...current.command,
           resolvedCommand: result.resolvedCommand.command,
           ecosystem: result.repository.ecosystem,
           reason: result.resolvedCommand.reason,
@@ -157,20 +210,11 @@ export async function executeTask(task: Task) {
         },
       });
 
-      await emitCurrentTask(task.id, "task.completed");
       return;
     }
 
-    throw new Error(`Unsupported task kind: ${task.kind}`);
+    throw new Error(`Unsupported task kind: ${current.kind}`);
   } catch (error) {
-    await updateTask(task.id, {
-      status: "failed",
-      error: {
-        message:
-          error instanceof Error ? error.message : "Unknown execution error",
-      },
-    });
-
-    await emitCurrentTask(task.id, "task.failed");
+    await markTaskFailed(task.id, error);
   }
 }
