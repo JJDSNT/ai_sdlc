@@ -1,42 +1,66 @@
+import { NextResponse } from "next/server";
+
+const baseUrl =
+  process.env.AGENT_BASE_URL?.trim() || "http://localhost:3001";
+
 export async function GET() {
-  const baseUrl =
-    process.env.AGENT_URL ??
-    process.env.NEXT_PUBLIC_AGENT_URL ??
-    "http://localhost:3001";
+  try {
+    const upstream = await fetch(`${baseUrl}/tasks`, {
+      method: "GET",
+      cache: "no-store",
+    });
 
-  const response = await fetch(`${baseUrl}/tasks`, {
-    method: "GET",
-    cache: "no-store",
-  });
+    const text = await upstream.text();
 
-  return new Response(await response.text(), {
-    status: response.status,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    return new NextResponse(text || JSON.stringify({ ok: true, tasks: [] }), {
+      status: upstream.status,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "agent_unreachable",
+        message:
+          error instanceof Error ? error.message : "Failed to reach agent",
+      },
+      { status: 502 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
-  const body = await request.text();
+  try {
+    const body = await request.text();
 
-  const baseUrl =
-    process.env.AGENT_URL ??
-    process.env.NEXT_PUBLIC_AGENT_URL ??
-    "http://localhost:3001";
+    const upstream = await fetch(`${baseUrl}/tasks`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body,
+      cache: "no-store",
+    });
 
-  const response = await fetch(`${baseUrl}/tasks`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body,
-  });
+    const text = await upstream.text();
 
-  return new Response(await response.text(), {
-    status: response.status,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    return new NextResponse(text || JSON.stringify({ ok: false }), {
+      status: upstream.status,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "agent_unreachable",
+        message:
+          error instanceof Error ? error.message : "Failed to reach agent",
+      },
+      { status: 502 }
+    );
+  }
 }

@@ -33,3 +33,6 @@ workspaces/*
 !workspaces/.gitkeep
 tmp/
 temp/
+
+# task storage
+apps/agent/.agent-data/
