@@ -39,6 +39,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ag-ui/client':
+        specifier: ^0.0.48
+        version: 0.0.48
       '@copilotkit/react-core':
         specifier: ^1.54.1
         version: 1.54.1(@ag-ui/core@0.0.48)(@types/mdast@4.0.4)(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(graphql@16.13.2)(micromark-util-types@2.0.2)(micromark@4.0.2)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(signal-polyfill@0.2.2)(zod@4.3.6)
