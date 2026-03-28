@@ -1,3 +1,5 @@
+# .gitignore
+
 # dependencies
 node_modules/
 
@@ -18,12 +20,16 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
-# OS
-.DS_Store
-
-# IDE
-.vscode/
-.idea/
-
 # typescript
 *.tsbuildinfo
+
+# ide / os
+.vscode/
+.idea/
+.DS_Store
+
+# execution workspaces
+workspaces/*
+!workspaces/.gitkeep
+tmp/
+temp/
