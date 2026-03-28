@@ -4,10 +4,25 @@ import { useEffect, useRef, useState } from "react";
 
 export type TaskState = {
   id: string;
+  kind: string;
   status: string;
+  prompt?: string;
   output?: {
     text?: string;
+    metadata?: Record<string, unknown>;
   };
+  command?: {
+    intent?: string;
+    customCommand?: string;
+    resolvedCommand?: string;
+    ecosystem?: string;
+    reason?: string;
+  };
+  error?: {
+    message?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 };
 
 export function useTask(taskId: string | null) {
