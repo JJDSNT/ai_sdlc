@@ -1,0 +1,13 @@
+{
+  "name": "ai_sdlc",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.29.3",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter './apps/*' run dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf node_modules dist .next"
+  }
+}
