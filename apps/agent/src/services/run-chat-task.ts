@@ -4,6 +4,13 @@ import {
   type NormalizedAssistantMessage,
 } from "../adapters/opencode.js";
 
+export type RunChatTaskInput = {
+  prompt: string;
+  sessionId?: string;
+  threadId?: string;
+  title?: string;
+};
+
 export type RunChatTaskResult = {
   sessionId: string;
   output: string;
@@ -18,23 +25,35 @@ export class RunChatTaskError extends Error {
 }
 
 export async function runChatTask(
-  prompt: string
+  input: RunChatTaskInput
 ): Promise<RunChatTaskResult> {
   const client = createOpenCodeClient();
 
+  if (!input.prompt?.trim()) {
+    throw new RunChatTaskError("Prompt is required");
+  }
+
   try {
-    const session = await client.createSession({
-      title: "ai_sdlc chat",
-    });
+    let sessionId = input.sessionId;
+
+    if (!sessionId) {
+      const session = await client.createSession({
+        title:
+          input.title ??
+          (input.threadId ? `ai_sdlc chat:${input.threadId}` : "ai_sdlc chat"),
+      });
+
+      sessionId = session.id;
+    }
 
     const message = await client.sendMessage({
-      sessionId: session.id,
-      text: prompt,
+      sessionId,
+      text: input.prompt.trim(),
     });
 
     return {
-      sessionId: session.id,
-      output: message.text || "Execução concluída sem texto de saída",
+      sessionId,
+      output: message.text?.trim() || "Execução concluída sem texto de saída",
       message,
     };
   } catch (error) {
