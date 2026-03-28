@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CopilotPanel } from "../components/copilot-panel";
 import { useTask } from "../hooks/use-task";
 import { useTasks } from "../hooks/use-tasks";
 
@@ -21,7 +22,7 @@ function getStatusColor(status: string) {
   }
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: Readonly<{ status: string }>) {
   const color = getStatusColor(status);
 
   return (
@@ -86,10 +87,7 @@ function Panel({
 }
 
 export default function Page() {
-  const [prompt, setPrompt] = useState("");
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   const { tasks, loading, error, refresh } = useTasks();
   const selectedTask = useTask(selectedTaskId);
@@ -110,53 +108,11 @@ export default function Page() {
     }
   }, [selectedTask?.id, selectedTask?.status, refresh]);
 
-  async function handleRunChat() {
-    if (!prompt.trim()) return;
-
-    setCreating(true);
-    setCreateError(null);
-
-    try {
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          kind: "chat",
-          prompt,
-        }),
-      });
-
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-
-      if (!res.ok) {
-        throw new Error(
-          data?.message || `Task creation failed: ${res.status}`
-        );
-      }
-
-      if (data?.task?.id) {
-        setSelectedTaskId(data.task.id);
-      }
-
-      setPrompt("");
-      await refresh();
-    } catch (error) {
-      setCreateError(
-        error instanceof Error ? error.message : "Erro ao criar task"
-      );
-    } finally {
-      setCreating(false);
-    }
-  }
-
   return (
     <main
       style={{
         display: "grid",
-        gridTemplateColumns: "340px 1fr",
+        gridTemplateColumns: "320px 480px 1fr",
         minHeight: "100vh",
         background: "#f8fafc",
         color: "#111827",
@@ -194,206 +150,128 @@ export default function Page() {
           </h1>
         </div>
 
-        <div
+        <button
+          onClick={() => void refresh()}
+          disabled={loading}
           style={{
-            display: "grid",
-            gap: 10,
-            padding: 14,
+            height: 40,
+            width: "100%",
+            borderRadius: 12,
+            border: "1px solid #d1d5db",
             background: "white",
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
+            color: "#111827",
+            fontWeight: 600,
+            cursor: loading ? "not-allowed" : "pointer",
+            marginBottom: 16,
           }}
         >
-          <label
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            Novo prompt
-          </label>
+          {loading ? "Atualizando..." : "Atualizar lista"}
+        </button>
 
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Digite um prompt..."
-            style={{
-              width: "100%",
-              minHeight: 110,
-              resize: "vertical",
-              borderRadius: 12,
-              border: "1px solid #d1d5db",
-              padding: 12,
-              font: "inherit",
-              outline: "none",
-              background: "#fff",
-            }}
-          />
-
-          <button
-            onClick={handleRunChat}
-            disabled={!prompt.trim() || creating}
-            style={{
-              height: 40,
-              border: 0,
-              borderRadius: 12,
-              background: !prompt.trim() || creating ? "#cbd5e1" : "#111827",
-              color: "white",
-              fontWeight: 600,
-              cursor: !prompt.trim() || creating ? "not-allowed" : "pointer",
-            }}
-          >
-            {creating ? "Criando..." : "Nova task de chat"}
-          </button>
-
-          <button
-            onClick={() => void refresh()}
-            disabled={loading}
-            style={{
-              height: 40,
-              borderRadius: 12,
-              border: "1px solid #d1d5db",
-              background: "white",
-              color: "#111827",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
-          >
-            {loading ? "Atualizando..." : "Atualizar lista"}
-          </button>
-
-          {createError && (
-            <div
-              style={{
-                borderRadius: 12,
-                border: "1px solid #fecaca",
-                background: "#fef2f2",
-                color: "#991b1b",
-                padding: 12,
-                fontSize: 13,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {createError}
-            </div>
-          )}
-
-          {error && (
-            <div
-              style={{
-                borderRadius: 12,
-                border: "1px solid #fecaca",
-                background: "#fef2f2",
-                color: "#991b1b",
-                padding: 12,
-                fontSize: 13,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {error}
-            </div>
-          )}
-        </div>
-
-        <div style={{ marginTop: 18 }}>
+        {error && (
           <div
             style={{
-              marginBottom: 10,
+              borderRadius: 12,
+              border: "1px solid #fecaca",
+              background: "#fef2f2",
+              color: "#991b1b",
+              padding: 12,
               fontSize: 13,
-              fontWeight: 600,
-              color: "#6b7280",
+              whiteSpace: "pre-wrap",
+              marginBottom: 16,
             }}
           >
-            Histórico
+            {error}
           </div>
+        )}
 
-          <div style={{ display: "grid", gap: 10 }}>
-            {sortedTasks.length === 0 && !loading && (
-              <div
+        <div style={{ display: "grid", gap: 10 }}>
+          {sortedTasks.map((task) => {
+            const isSelected = task.id === selectedTaskId;
+
+            return (
+              <button
+                key={task.id}
+                onClick={() => setSelectedTaskId(task.id)}
                 style={{
+                  textAlign: "left",
                   padding: 14,
+                  border: isSelected
+                    ? "1px solid #94a3b8"
+                    : "1px solid #e5e7eb",
+                  background: isSelected ? "#f1f5f9" : "white",
                   borderRadius: 14,
-                  border: "1px dashed #d1d5db",
-                  color: "#6b7280",
-                  background: "white",
-                  fontSize: 14,
+                  cursor: "pointer",
                 }}
               >
-                Nenhuma task criada ainda.
-              </div>
-            )}
-
-            {sortedTasks.map((task) => {
-              const isSelected = task.id === selectedTaskId;
-
-              return (
-                <button
-                  key={task.id}
-                  onClick={() => setSelectedTaskId(task.id)}
+                <div
                   style={{
-                    textAlign: "left",
-                    padding: 14,
-                    border: isSelected
-                      ? "1px solid #94a3b8"
-                      : "1px solid #e5e7eb",
-                    background: isSelected ? "#f1f5f9" : "white",
-                    borderRadius: 14,
-                    cursor: "pointer",
-                    boxShadow: isSelected
-                      ? "0 1px 2px rgba(0,0,0,0.06)"
-                      : "0 1px 1px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    marginBottom: 8,
                   }}
                 >
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#6b7280",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {task.kind}
-                    </div>
-
-                    <StatusBadge status={task.status} />
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "#111827",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {task.prompt || "(sem prompt)"}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 8,
                       fontSize: 12,
                       color: "#6b7280",
+                      fontWeight: 600,
                     }}
                   >
-                    {new Date(task.createdAt).toLocaleString()}
+                    {task.kind}
                   </div>
-                </button>
-              );
-            })}
-          </div>
+
+                  <StatusBadge status={task.status} />
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#111827",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {task.prompt || "(sem prompt)"}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 12,
+                    color: "#6b7280",
+                  }}
+                >
+                  {new Date(task.createdAt).toLocaleString()}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </aside>
+
+      <section
+        style={{
+          borderRight: "1px solid #e5e7eb",
+          padding: 16,
+          background: "white",
+        }}
+      >
+        <CopilotPanel
+          tasks={sortedTasks}
+          selectedTaskId={selectedTaskId}
+          selectedTask={selectedTask}
+          onSelectTask={setSelectedTaskId}
+          onTaskCreated={(taskId) => {
+            setSelectedTaskId(taskId);
+          }}
+          onRefreshTasks={refresh}
+        />
+      </section>
 
       <section
         style={{
@@ -426,11 +304,10 @@ export default function Page() {
                   marginBottom: 8,
                 }}
               >
-                Selecione ou crie uma task
+                Selecione uma task
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                Use a sidebar para iniciar uma nova execução e acompanhar o
-                resultado em tempo real.
+                Use o Copilot no painel central para criar ou selecionar tasks.
               </div>
             </div>
           </div>
@@ -488,45 +365,6 @@ export default function Page() {
                 >
                   {selectedTask.prompt}
                 </pre>
-              </Panel>
-            )}
-
-            {selectedTask.command && (
-              <Panel title="Command">
-                <div style={{ display: "grid", gap: 10 }}>
-                  {selectedTask.command.intent && (
-                    <div>
-                      <strong>Intent:</strong> {selectedTask.command.intent}
-                    </div>
-                  )}
-
-                  {selectedTask.command.customCommand && (
-                    <div>
-                      <strong>Custom:</strong>{" "}
-                      <code>{selectedTask.command.customCommand}</code>
-                    </div>
-                  )}
-
-                  {selectedTask.command.resolvedCommand && (
-                    <div>
-                      <strong>Resolved:</strong>{" "}
-                      <code>{selectedTask.command.resolvedCommand}</code>
-                    </div>
-                  )}
-
-                  {selectedTask.command.ecosystem && (
-                    <div>
-                      <strong>Ecosystem:</strong>{" "}
-                      {selectedTask.command.ecosystem}
-                    </div>
-                  )}
-
-                  {selectedTask.command.reason && (
-                    <div>
-                      <strong>Reason:</strong> {selectedTask.command.reason}
-                    </div>
-                  )}
-                </div>
               </Panel>
             )}
 
