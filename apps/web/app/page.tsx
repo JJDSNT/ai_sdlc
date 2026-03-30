@@ -1,449 +1,259 @@
+// apps/web/src/app/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CopilotPanel } from "../components/copilot-panel";
-import { useTask } from "../hooks/use-task";
-import { useTasks } from "../hooks/use-tasks";
+import Link from "next/link";
+import { TopNav } from "@/components/layout/top-nav";
 
-function getStatusColor(status: string) {
-  switch (status) {
-    case "queued":
-      return "#6b7280";
-    case "running":
-      return "#2563eb";
-    case "succeeded":
-      return "#16a34a";
-    case "failed":
-      return "#dc2626";
-    case "cancelled":
-      return "#9333ea";
-    default:
-      return "#6b7280";
-  }
-}
+type Project = {
+  id: string;
+  name: string;
+  spec: string;
+  progress: number;
+  totalIssues: number;
+  doneIssues: number;
+  wip: number;
+  blocked: number;
+  lastActivity: string;
+  aiHint: string;
+};
 
-function StatusBadge({ status }: Readonly<{ status: string }>) {
-  const color = getStatusColor(status);
+const projects: Project[] = [
+  {
+    id: "p-1",
+    name: "Digital Twin Hidrológico",
+    spec: "Simulação e monitoramento de bacias",
+    progress: 42,
+    totalIssues: 12,
+    doneIssues: 5,
+    wip: 2,
+    blocked: 1,
+    lastActivity: "há 2h",
+    aiHint:
+      "Refinar modelo de ingestão de dados e validar consistência temporal.",
+  },
+  {
+    id: "p-2",
+    name: "Sistema de Autenticação",
+    spec: "Identity & Access Management",
+    progress: 68,
+    totalIssues: 16,
+    doneIssues: 11,
+    wip: 3,
+    blocked: 0,
+    lastActivity: "há 30min",
+    aiHint:
+      "Formalizar fluxo de recuperação de conta e validar edge cases.",
+  },
+  {
+    id: "p-3",
+    name: "Plataforma de Observabilidade",
+    spec: "Logs, métricas e tracing",
+    progress: 25,
+    totalIssues: 20,
+    doneIssues: 5,
+    wip: 4,
+    blocked: 3,
+    lastActivity: "há 5h",
+    aiHint:
+      "Alto número de bloqueios — investigar dependências externas.",
+  },
+];
 
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 10px",
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        background: `${color}14`,
-        color,
-        border: `1px solid ${color}33`,
-      }}
-    >
-      <span
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: 999,
-          background: color,
-          display: "inline-block",
-        }}
-      />
-      {status}
-    </span>
-  );
-}
-
-function Panel({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      style={{
-        background: "white",
-        border: "1px solid #e5e7eb",
-        borderRadius: 16,
-        padding: 20,
-        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-      }}
-    >
-      <h2
-        style={{
-          marginTop: 0,
-          marginBottom: 14,
-          fontSize: 16,
-          fontWeight: 700,
-        }}
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-export default function Page() {
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-
-  const { tasks, loading, error, refresh } = useTasks();
-  const selectedTask = useTask(selectedTaskId);
-
-  const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [tasks]);
-
-  useEffect(() => {
-    if (!selectedTask) return;
-
-    if (
-      selectedTask.status === "succeeded" ||
-      selectedTask.status === "failed" ||
-      selectedTask.status === "cancelled"
-    ) {
-      void refresh();
-    }
-  }, [selectedTask?.id, selectedTask?.status, refresh]);
-
+export default function OverviewPage() {
   return (
     <main
       style={{
-        display: "grid",
-        gridTemplateColumns: "320px 480px 1fr",
         minHeight: "100vh",
-        background: "#f8fafc",
-        color: "#111827",
+        display: "grid",
+        gridTemplateRows: "64px auto 1fr",
+        background:
+          "radial-gradient(circle at top left, rgba(59,130,246,0.05), transparent 25%), #f8fafc",
       }}
     >
-      <aside
+      <TopNav />
+
+      {/* HEADER */}
+      <section
         style={{
-          borderRight: "1px solid #e5e7eb",
           padding: 20,
-          background: "#fbfbfc",
+          borderBottom: "1px solid #e2e8f0",
+          background: "#ffffff",
+          display: "grid",
+          gap: 12,
         }}
       >
-        <div style={{ marginBottom: 20 }}>
+        <div style={{ display: "grid", gap: 6 }}>
           <div
             style={{
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.12em",
               textTransform: "uppercase",
-              color: "#6b7280",
-              marginBottom: 8,
+              color: "#64748b",
             }}
           >
-            AI Engineering Console
+            Overview
           </div>
 
           <h1
             style={{
               margin: 0,
-              fontSize: 22,
-              lineHeight: 1.2,
+              fontSize: 32,
+              fontWeight: 900,
+              color: "#0f172a",
             }}
           >
-            Tasks
+            Projetos ativos
           </h1>
-        </div>
 
-        <button
-          onClick={() => void refresh()}
-          disabled={loading}
-          style={{
-            height: 40,
-            width: "100%",
-            borderRadius: 12,
-            border: "1px solid #d1d5db",
-            background: "white",
-            color: "#111827",
-            fontWeight: 600,
-            cursor: loading ? "not-allowed" : "pointer",
-            marginBottom: 16,
-          }}
-        >
-          {loading ? "Atualizando..." : "Atualizar lista"}
-        </button>
-
-        {error && (
-          <div
+          <p
             style={{
-              borderRadius: 12,
-              border: "1px solid #fecaca",
-              background: "#fef2f2",
-              color: "#991b1b",
-              padding: 12,
-              fontSize: 13,
-              whiteSpace: "pre-wrap",
-              marginBottom: 16,
+              margin: 0,
+              fontSize: 14,
+              color: "#475569",
+              maxWidth: 720,
             }}
           >
-            {error}
-          </div>
-        )}
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {sortedTasks.map((task) => {
-            const isSelected = task.id === selectedTaskId;
-
-            return (
-              <button
-                key={task.id}
-                onClick={() => setSelectedTaskId(task.id)}
-                style={{
-                  textAlign: "left",
-                  padding: 14,
-                  border: isSelected
-                    ? "1px solid #94a3b8"
-                    : "1px solid #e5e7eb",
-                  background: isSelected ? "#f1f5f9" : "white",
-                  borderRadius: 14,
-                  cursor: "pointer",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#6b7280",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {task.kind}
-                  </div>
-
-                  <StatusBadge status={task.status} />
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "#111827",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {task.prompt || "(sem prompt)"}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 12,
-                    color: "#6b7280",
-                  }}
-                >
-                  {new Date(task.createdAt).toLocaleString()}
-                </div>
-              </button>
-            );
-          })}
+            Acompanhe o estado dos sistemas, identifique riscos e entre no ponto
+            certo para avançar.
+          </p>
         </div>
-      </aside>
-
-      <section
-        style={{
-          borderRight: "1px solid #e5e7eb",
-          padding: 16,
-          background: "white",
-        }}
-      >
-        <CopilotPanel
-          tasks={sortedTasks}
-          selectedTaskId={selectedTaskId}
-          selectedTask={selectedTask}
-          onSelectTask={setSelectedTaskId}
-          onTaskCreated={(taskId) => {
-            setSelectedTaskId(taskId);
-          }}
-          onRefreshTasks={refresh}
-        />
       </section>
 
+      {/* GRID */}
       <section
         style={{
-          padding: 24,
+          padding: 20,
           display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
           gap: 16,
           alignContent: "start",
         }}
       >
-        {!selectedTaskId && (
+        {projects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
+        ))}
+      </section>
+    </main>
+  );
+}
+
+function ProjectCard({
+  project,
+}: Readonly<{
+  project: Project;
+}>) {
+  return (
+    <Link
+      href="/definition"
+      style={{
+        textDecoration: "none",
+        color: "inherit",
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+          padding: 18,
+          borderRadius: 20,
+          border: "1px solid #e2e8f0",
+          background: "#ffffff",
+          boxShadow: "0 12px 28px rgba(15,23,42,0.05)",
+          transition: "all 0.2s ease",
+          cursor: "pointer",
+        }}
+      >
+        {/* HEADER */}
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
+            {project.name}
+          </div>
+
+          <div style={{ fontSize: 13, color: "#64748b" }}>
+            {project.spec}
+          </div>
+        </div>
+
+        {/* PROGRESS */}
+        <div style={{ display: "grid", gap: 6 }}>
           <div
             style={{
-              minHeight: "100%",
-              display: "grid",
-              placeItems: "center",
+              display: "flex",
+              justifyContent: "space-between",
+              fontSize: 13,
+              color: "#475569",
+            }}
+          >
+            <span>Sprint</span>
+            <strong style={{ color: "#0f172a" }}>
+              {project.progress}%
+            </strong>
+          </div>
+
+          <div
+            style={{
+              width: "100%",
+              height: 8,
+              borderRadius: 999,
+              background: "#e2e8f0",
+              overflow: "hidden",
             }}
           >
             <div
               style={{
-                textAlign: "center",
-                maxWidth: 420,
-                color: "#6b7280",
+                width: `${project.progress}%`,
+                height: "100%",
+                background:
+                  "linear-gradient(90deg, #2563eb 0%, #7c3aed 100%)",
               }}
-            >
-              <div
-                style={{
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: "#111827",
-                  marginBottom: 8,
-                }}
-              >
-                Selecione uma task
-              </div>
-              <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                Use o Copilot no painel central para criar ou selecionar tasks.
-              </div>
-            </div>
+            />
           </div>
-        )}
 
-        {selectedTask && (
-          <>
-            <Panel title="Task">
-              <div style={{ display: "grid", gap: 10 }}>
-                <div>
-                  <strong>ID:</strong> {selectedTask.id}
-                </div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            {project.doneIssues} de {project.totalIssues} issues concluídas
+          </div>
+        </div>
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <strong>Status:</strong>
-                  <StatusBadge status={selectedTask.status} />
-                </div>
+        {/* METRICS */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          <span>WIP: {project.wip}</span>
+          <span style={{ color: "#dc2626" }}>
+            Bloqueios: {project.blocked}
+          </span>
+        </div>
 
-                <div>
-                  <strong>Kind:</strong> {selectedTask.kind}
-                </div>
+        {/* AI INSIGHT */}
+        <div
+          style={{
+            padding: 10,
+            borderRadius: 12,
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            fontSize: 12,
+            color: "#475569",
+          }}
+        >
+          💡 {project.aiHint}
+        </div>
 
-                <div>
-                  <strong>Criada em:</strong>{" "}
-                  {new Date(selectedTask.createdAt).toLocaleString()}
-                </div>
-
-                <div>
-                  <strong>Atualizada em:</strong>{" "}
-                  {new Date(selectedTask.updatedAt).toLocaleString()}
-                </div>
-              </div>
-            </Panel>
-
-            {selectedTask.prompt && (
-              <Panel title="Prompt">
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                    color: "#111827",
-                  }}
-                >
-                  {selectedTask.prompt}
-                </pre>
-              </Panel>
-            )}
-
-            {selectedTask.output?.text && (
-              <Panel title="Output">
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    background: "#0f172a",
-                    color: "#e5e7eb",
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "1px solid #1e293b",
-                    maxHeight: 520,
-                    overflow: "auto",
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    fontSize: 13,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  {selectedTask.output.text}
-                </pre>
-              </Panel>
-            )}
-
-            {selectedTask.output?.metadata && (
-              <Panel title="Metadata">
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    background: "#f8fafc",
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "1px solid #e5e7eb",
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    fontSize: 12,
-                    lineHeight: 1.6,
-                    overflow: "auto",
-                  }}
-                >
-                  {JSON.stringify(selectedTask.output.metadata, null, 2)}
-                </pre>
-              </Panel>
-            )}
-
-            {selectedTask.error?.message && (
-              <Panel title="Error">
-                <pre
-                  style={{
-                    margin: 0,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                    background: "#fef2f2",
-                    color: "#991b1b",
-                    padding: 16,
-                    borderRadius: 12,
-                    border: "1px solid #fecaca",
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {selectedTask.error.message}
-                  {selectedTask.error.stack
-                    ? `\n\n${selectedTask.error.stack}`
-                    : ""}
-                </pre>
-              </Panel>
-            )}
-          </>
-        )}
-      </section>
-    </main>
+        {/* FOOTER */}
+        <div
+          style={{
+            fontSize: 11,
+            color: "#94a3b8",
+          }}
+        >
+          Última atividade: {project.lastActivity}
+        </div>
+      </div>
+    </Link>
   );
 }
