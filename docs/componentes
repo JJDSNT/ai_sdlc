@@ -1,0 +1,294 @@
+Perfeito. Vou te devolver uma **árvore inicial de componentes**, já pensando em Next.js, no que sua page atual já faz, e em como evoluir sem perder a base que você tem hoje 
+
+# Estrutura sugerida
+
+```txt
+apps/web/src/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── execution/
+│   │   └── page.tsx
+│   ├── definition/
+│   │   └── page.tsx
+│   ├── knowledge/
+│   │   └── page.tsx
+│   ├── activity/
+│   │   └── page.tsx
+│   └── settings/
+│       └── page.tsx
+│
+├── components/
+│   ├── layout/
+│   │   ├── app-shell.tsx
+│   │   ├── sidebar-nav.tsx
+│   │   ├── page-header.tsx
+│   │   ├── context-bar.tsx
+│   │   └── entity-drawer.tsx
+│   │
+│   ├── ui/
+│   │   ├── section-card.tsx
+│   │   ├── status-badge.tsx
+│   │   ├── metric-card.tsx
+│   │   ├── empty-state.tsx
+│   │   ├── action-button.tsx
+│   │   ├── loading-state.tsx
+│   │   └── error-state.tsx
+│   │
+│   ├── copilot/
+│   │   ├── copilot-panel.tsx
+│   │   ├── copilot-actions.tsx
+│   │   └── copilot-context-summary.tsx
+│
+├── features/
+│   ├── execution/
+│   │   ├── components/
+│   │   │   ├── issue-list.tsx
+│   │   │   ├── issue-list-item.tsx
+│   │   │   ├── issue-details.tsx
+│   │   │   ├── issue-drawer.tsx
+│   │   │   ├── execution-task-list.tsx
+│   │   │   ├── execution-task-item.tsx
+│   │   │   ├── kanban-board.tsx
+│   │   │   ├── kanban-column.tsx
+│   │   │   ├── issue-card.tsx
+│   │   │   ├── blocked-issues-panel.tsx
+│   │   │   ├── sprint-header.tsx
+│   │   │   ├── sprint-progress-bar.tsx
+│   │   │   ├── sprint-health-card.tsx
+│   │   │   ├── sprint-metrics-panel.tsx
+│   │   │   └── checkpoint-card.tsx
+│   │   ├── hooks/
+│   │   │   ├── use-issues.ts
+│   │   │   ├── use-issue.ts
+│   │   │   ├── use-sprint.ts
+│   │   │   └── use-execution-metrics.ts
+│   │   └── types.ts
+│   │
+│   ├── definition/
+│   │   ├── components/
+│   │   │   ├── spec-editor.tsx
+│   │   │   ├── requirement-list.tsx
+│   │   │   ├── requirement-item.tsx
+│   │   │   ├── decision-block.tsx
+│   │   │   ├── acceptance-criteria-list.tsx
+│   │   │   ├── spec-outline.tsx
+│   │   │   └── artifact-relations-panel.tsx
+│   │   ├── hooks/
+│   │   │   ├── use-spec.ts
+│   │   │   └── use-requirements.ts
+│   │   └── types.ts
+│   │
+│   ├── overview/
+│   │   ├── components/
+│   │   │   ├── project-summary-card.tsx
+│   │   │   ├── progress-overview.tsx
+│   │   │   ├── pending-actions.tsx
+│   │   │   ├── activity-feed.tsx
+│   │   │   └── quick-actions.tsx
+│   │   └── types.ts
+│   │
+│   ├── knowledge/
+│   │   ├── components/
+│   │   │   ├── document-tree.tsx
+│   │   │   ├── document-viewer.tsx
+│   │   │   ├── related-artifacts.tsx
+│   │   │   └── onboarding-card.tsx
+│   │   └── types.ts
+│   │
+│   ├── activity/
+│   │   ├── components/
+│   │   │   ├── timeline.tsx
+│   │   │   ├── activity-item.tsx
+│   │   │   └── diff-viewer.tsx
+│   │   └── types.ts
+│   │
+│   └── settings/
+│       ├── components/
+│       │   ├── workflow-settings.tsx
+│       │   ├── copilot-settings.tsx
+│       │   ├── quality-settings.tsx
+│       │   └── security-settings.tsx
+│       └── types.ts
+│
+├── hooks/
+│   ├── use-command-palette.ts
+│   ├── use-global-search.ts
+│   └── use-context-bar.ts
+│
+├── lib/
+│   ├── api/
+│   ├── utils/
+│   └── copilot/
+│
+└── types/
+    ├── issue.ts
+    ├── sprint.ts
+    ├── spec.ts
+    └── activity.ts
+```
+
+# Responsabilidade de cada bloco
+
+## `components/layout`
+
+Infra visual da aplicação.
+
+* `app-shell.tsx`
+  Estrutura global com sidebar, conteúdo e painel lateral.
+
+* `sidebar-nav.tsx`
+  Navegação principal.
+
+* `page-header.tsx`
+  Cabeçalho padrão de cada tela.
+
+* `context-bar.tsx`
+  Projeto atual, sprint atual, entidade selecionada.
+
+* `entity-drawer.tsx`
+  Drawer universal para abrir issue, spec, doc, decisão.
+
+## `components/ui`
+
+Base reutilizável.
+
+* `section-card.tsx`
+  Evolução do seu `Panel`.
+
+* `status-badge.tsx`
+  Para status de issue, task, sprint.
+
+* `metric-card.tsx`
+  Card simples de métrica.
+
+* `empty-state.tsx`
+  Estado vazio padronizado.
+
+* `action-button.tsx`
+  Botão principal/secundário consistente.
+
+* `loading-state.tsx`
+  Skeleton/spinner padronizado.
+
+* `error-state.tsx`
+  Caixa de erro reutilizável.
+
+## `components/copilot`
+
+Camada transversal da IA.
+
+* `copilot-panel.tsx`
+  Seu painel principal do assistente.
+
+* `copilot-actions.tsx`
+  Ações rápidas, tipo “gerar issues”, “resumir sprint”.
+
+* `copilot-context-summary.tsx`
+  Mostra o contexto que a IA está usando.
+
+# Ordem ideal de implementação
+
+Eu faria assim:
+
+## Fase 1 — consolidar sua page atual
+
+Criar primeiro:
+
+```txt
+components/layout/app-shell.tsx
+components/ui/section-card.tsx
+components/ui/status-badge.tsx
+components/ui/empty-state.tsx
+features/execution/components/execution-task-item.tsx
+features/execution/components/execution-task-list.tsx
+features/execution/components/issue-details.tsx
+features/execution/components/issue-drawer.tsx
+```
+
+Isso já limpa bastante o `page.tsx`.
+
+## Fase 2 — introduzir a camada de issue
+
+Depois criar:
+
+```txt
+features/execution/components/issue-list.tsx
+features/execution/components/issue-list-item.tsx
+features/execution/hooks/use-issues.ts
+types/issue.ts
+```
+
+Aqui você começa a separar:
+
+* `Issue` como domínio
+* `ExecutionTask` como execução interna
+
+## Fase 3 — sprint e observabilidade
+
+Depois entrar com:
+
+```txt
+features/execution/components/sprint-progress-bar.tsx
+features/execution/components/sprint-health-card.tsx
+features/execution/components/sprint-metrics-panel.tsx
+features/execution/components/checkpoint-card.tsx
+```
+
+## Fase 4 — board
+
+Aí sim:
+
+```txt
+features/execution/components/kanban-board.tsx
+features/execution/components/kanban-column.tsx
+features/execution/components/issue-card.tsx
+features/execution/components/blocked-issues-panel.tsx
+```
+
+# Os 10 componentes que eu criaria primeiro
+
+Se você quiser começar de forma bem pragmática, eu escolheria estes:
+
+```txt
+app-shell.tsx
+section-card.tsx
+status-badge.tsx
+empty-state.tsx
+copilot-panel.tsx
+issue-list.tsx
+issue-list-item.tsx
+issue-details.tsx
+execution-task-list.tsx
+sprint-health-card.tsx
+```
+
+# Como isso conversa com sua page atual
+
+Seu `page.tsx` hoje mistura:
+
+* layout
+* sidebar
+* detalhe
+* cards
+* task item
+* estados vazios
+
+O primeiro ganho real vai ser quebrar isso em:
+
+```txt
+Page
+├── AppShell
+│   ├── IssueList / ExecutionTaskList
+│   ├── CopilotPanel
+│   └── IssueDetails
+```
+
+A partir daí você evolui sem reescrever tudo.
+
+# Minha recomendação objetiva
+
+Começa por `execution` primeiro, porque é onde seu sistema já está vivo.
+Não tentaria implementar `definition`, `knowledge` e `activity` todas de uma vez.
+
+Se você quiser, no próximo passo eu posso te entregar uma **versão inicial desses arquivos já com código base**, começando por `app-shell`, `section-card`, `status-badge` e a refatoração do seu `page.tsx`.
