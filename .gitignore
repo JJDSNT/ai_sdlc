@@ -35,5 +35,5 @@ tmp/
 temp/
 
 # storage
-dbmigrations/*
+apps/agent/db/migrations/*
 sqlite.db
