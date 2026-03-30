@@ -1,20 +1,13 @@
+//apps/agent/src/task-store.ts
+
 import { EventEmitter } from "node:events";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { desc, eq, max } from "drizzle-orm";
+import { db } from "@/db/client";
+import { taskEvents, tasks } from "@/db/schema";
 import type { Task } from "./task.js";
 
 const emitter = new EventEmitter();
 emitter.setMaxListeners(100);
-
-const DATA_DIR =
-  process.env.AGENT_DATA_DIR?.trim() ||
-  path.resolve(process.cwd(), ".agent-data");
-
-const TASKS_FILE = path.join(DATA_DIR, "tasks.json");
-
-let hasLoaded = false;
-const tasks = new Map<string, Task>();
-let writeQueue: Promise<void> = Promise.resolve();
 
 export type TaskEvent =
   | { type: "task.created"; task: Task }
@@ -32,61 +25,71 @@ export type TaskEvent =
       reason?: string;
     };
 
-async function ensureDataDir() {
-  await mkdir(DATA_DIR, { recursive: true });
-}
+type MutableTaskPatch = Omit<Partial<Task>, "id" | "createdAt">;
 
-async function persistTasks() {
-  await ensureDataDir();
+// ---------- MAPPERS ----------
 
-  const payload = JSON.stringify(Array.from(tasks.values()), null, 2);
-
-  writeQueue = writeQueue.then(async () => {
-    const tempFile = `${TASKS_FILE}.tmp`;
-    await writeFile(tempFile, payload, "utf8");
-    await rename(tempFile, TASKS_FILE);
-  });
-
-  await writeQueue;
-}
-
-export async function loadTasks() {
-  if (hasLoaded) return;
-
-  await ensureDataDir();
-
+function parseJson<T>(value: string | null): T | undefined {
+  if (!value) return undefined;
   try {
-    const raw = await readFile(TASKS_FILE, "utf8");
-    const parsed = JSON.parse(raw) as Task[];
-
-    for (const task of parsed) {
-      tasks.set(task.id, task);
-    }
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-
-    if (err.code === "ENOENT") {
-      hasLoaded = true;
-      return;
-    }
-
-    throw error;
+    return JSON.parse(value) as T;
+  } catch {
+    return undefined;
   }
-
-  hasLoaded = true;
 }
+
+function mapRowToTask(row: typeof tasks.$inferSelect): Task {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    sessionId: row.sessionId ?? undefined,
+    kind: row.kind,
+    status: row.status as Task["status"],
+    result: (row.result as Task["result"]) ?? undefined,
+    title: row.title ?? undefined,
+    prompt: row.prompt ?? undefined,
+    input: parseJson(row.inputJson),
+    output: parseJson(row.outputJson),
+    error: parseJson(row.errorJson),
+    startedAt: row.startedAt ?? undefined,
+    completedAt: row.completedAt ?? undefined,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function serializeTask(task: Task) {
+  return {
+    id: task.id,
+    projectId: task.projectId,
+    sessionId: task.sessionId ?? null,
+    kind: task.kind,
+    status: task.status,
+    result: task.result ?? null,
+    title: task.title ?? null,
+    prompt: task.prompt ?? null,
+    inputJson: task.input ? JSON.stringify(task.input) : null,
+    outputJson: task.output ? JSON.stringify(task.output) : null,
+    errorJson: task.error ? JSON.stringify(task.error) : null,
+    startedAt: task.startedAt ?? null,
+    completedAt: task.completedAt ?? null,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+  };
+}
+
+// ---------- CORE ----------
 
 export async function createTask(task: Task) {
-  await loadTasks();
+  const existing = await getTask(task.id);
 
-  if (tasks.has(task.id)) {
+  if (existing) {
     throw new Error(`Task already exists: ${task.id}`);
   }
 
-  tasks.set(task.id, task);
-  await persistTasks();
+  await db.insert(tasks).values(serializeTask(task));
 
-  emitTaskEvent(task.id, {
+  await emitAndPersistTaskEvent(task.id, {
     type: "task.created",
     task,
   });
@@ -95,25 +98,23 @@ export async function createTask(task: Task) {
 }
 
 export async function getTask(taskId: string) {
-  await loadTasks();
-  return tasks.get(taskId) ?? null;
+  const row = await db.query.tasks.findFirst({
+    where: eq(tasks.id, taskId),
+  });
+
+  return row ? mapRowToTask(row) : null;
 }
 
 export async function listTasks() {
-  await loadTasks();
+  const rows = await db.query.tasks.findMany({
+    orderBy: [desc(tasks.createdAt)],
+  });
 
-  return Array.from(tasks.values()).sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return rows.map(mapRowToTask);
 }
 
-type MutableTaskPatch = Omit<Partial<Task>, "id" | "createdAt">;
-
 export async function updateTask(taskId: string, patch: MutableTaskPatch) {
-  await loadTasks();
-
-  const current = tasks.get(taskId);
+  const current = await getTask(taskId);
 
   if (!current) {
     return null;
@@ -125,10 +126,12 @@ export async function updateTask(taskId: string, patch: MutableTaskPatch) {
     updatedAt: new Date().toISOString(),
   };
 
-  tasks.set(taskId, next);
-  await persistTasks();
+  await db
+    .update(tasks)
+    .set(serializeTask(next))
+    .where(eq(tasks.id, taskId));
 
-  emitTaskEvent(taskId, {
+  await emitAndPersistTaskEvent(taskId, {
     type: "task.updated",
     task: next,
   });
@@ -136,8 +139,40 @@ export async function updateTask(taskId: string, patch: MutableTaskPatch) {
   return next;
 }
 
+// ---------- EVENTS ----------
+
+async function getNextSequence(taskId: string) {
+  const row = await db
+    .select({ value: max(taskEvents.sequence) })
+    .from(taskEvents)
+    .where(eq(taskEvents.taskId, taskId));
+
+  return (row[0]?.value ?? -1) + 1;
+}
+
+export async function appendTaskEvent(taskId: string, event: TaskEvent) {
+  const sequence = await getNextSequence(taskId);
+
+  await db.insert(taskEvents).values({
+    id: crypto.randomUUID(),
+    taskId,
+    eventType: event.type,
+    sequence,
+    payloadJson: JSON.stringify(event),
+    createdAt: new Date().toISOString(),
+  });
+}
+
 export function emitTaskEvent(taskId: string, event: TaskEvent) {
   emitter.emit(`${taskId}:event`, event);
+}
+
+export async function emitAndPersistTaskEvent(
+  taskId: string,
+  event: TaskEvent
+) {
+  await appendTaskEvent(taskId, event);
+  emitTaskEvent(taskId, event);
 }
 
 export function subscribeToTaskEvents(
@@ -149,4 +184,15 @@ export function subscribeToTaskEvents(
   return () => {
     emitter.off(`${taskId}:event`, listener);
   };
+}
+
+export async function listTaskEvents(taskId: string) {
+  const rows = await db.query.taskEvents.findMany({
+    where: eq(taskEvents.taskId, taskId),
+    orderBy: [taskEvents.sequence],
+  });
+
+  return rows.map((row) =>
+    JSON.parse(row.payloadJson) as TaskEvent
+  );
 }
