@@ -14,6 +14,11 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
+    "drizzle-kit": "^0.31.10",
     "wait-on": "^9.0.4"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "drizzle-orm": "^0.45.2"
   }
 }
