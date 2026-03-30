@@ -1,175 +1,96 @@
-# 🧠 AI Stack (by ecosystem & layers)
+# 🤖 AI SDLC Platform (Spec-Driven Development)
+
+Uma plataforma de engenharia de software de ponta a ponta, onde o **Desenvolvimento Orientado a Spec (SDD)** é o paradigma central. O sistema atua como um **"Spec Operating System"**, transformando especificações estruturadas em software executável com rastreabilidade total e auxílio de IA operacional.
 
 ---
 
-## 🟢 Claude Code ecosystem (terminal AI OS)
+## 🎯 O Coração do Projeto: Spec-Driven Development (SDD)
 
-https://github.com/fpytloun/mnemory
+Diferente do desenvolvimento tradicional, aqui a **Spec (Especificação)** não é apenas um documento estático, mas a fonte viva de verdade que orquestra todo o ciclo de vida:
 
-### Core runtime
-- Claude Code — https://github.com/anthropics/claude-code
-- Superpowers — https://github.com/obra/superpowers
-
-### Memory / Context
-- Claude Mem — https://github.com/thedotmack/claude-mem
-- LightRAG (external integration) — https://github.com/hkuds/lightrag
-
-### Workflow / Continuity
-- Get Shit Done — https://github.com/gsd-build/get-shit-done
-- Claude Labbook — https://github.com/anthonylee991/claude-labbook
-
-### Quality / Output control
-- UI-UX Pro Max — https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
-
-### Integrations
-- n8n MCP — https://github.com/czlonkowski/n8n-mcp
-
-### Knowledge / Docs
-- Understand Anything — https://github.com/Lum1104/Understand-Anything
-
-### Extensions / Packs
-- Everything Claude Code — https://github.com/affaan-m/everything-claude-code
-- Obsidian Skills — https://github.com/kepano/obsidian-skills
-
-### Learning / Guides
-- Claude Code Ultimate Guide — https://github.com/FlorianBruniaux/claude-code-ultimate-guide
-- Claude Code Best Practices — https://github.com/shanraisshan/claude-code-best-practice
-- Claude Code Hooks Mastery — https://github.com/disler/claude-code-hooks-mastery
-- Context Engineering Intro — https://github.com/coleam00/context-engineering-intro
-
-### Discovery
-- Awesome Claude Code — https://github.com/hesreallyhim/awesome-claude-code
-- Awesome Agent Skills — https://github.com/VoltAgent/awesome-agent-skills
-- AY Skills Library — https://github.com/walidboulanouar/ay-skills
+1.  **Spec-First:** Nada é desenvolvido ou alterado sem que a especificação seja atualizada primeiro.
+2.  **Transformação Automatizada:** A IA consome a Spec para gerar artefatos (issues, testes, documentação).
+3.  **Sincronia Total:** Qualquer desvio entre a implementação e a Spec é identificado como um "drift" de conhecimento.
 
 ---
 
-## 🟡 Letta ecosystem (stateful agent OS)
+## 🚀 Visão Geral
 
-### Core runtime
-- Letta Code — https://github.com/letta-ai/letta
+A plataforma resolve o problema da fragmentação de ferramentas e perda de contexto através de:
 
-👉 full stack: runtime + memory + agents
-
----
-
-## 🔵 Agent frameworks (builders)
-
-### Core frameworks
-- DeepAgents — https://github.com/langchain-ai/deepagents
-- Open-SWE — https://github.com/langchain-ai/open-swe
-
-### Extensions
-- GitAgent — https://github.com/open-gitagent/gitagent
-- Agency Agents — https://github.com/msitarzewski/agency-agents
-- RTK — https://github.com/rtk-ai/rtk
+- **Contexto Contínuo:** Manutenção do estado do projeto e histórico de decisões entre sessões de trabalho.
+- **IA Operacional:** Agentes que não apenas conversam, mas executam ações sobre a codebase e infraestrutura.
+- **Rastreabilidade Bidirecional:** Conexão direta entre `Spec ↔ Issue ↔ Código ↔ Decisão ↔ Documento`.
 
 ---
 
-## 🟣 HKUDS ecosystem (RAG + swarm research)
+## 🛠️ Stack Tecnológica
 
-### Core
-- LightRAG — https://github.com/hkuds/lightrag
-
-### Agents
-- ClawTeam — https://github.com/HKUDS/ClawTeam
-
-### Evolution layer
-- OpenSpace — https://github.com/HKUDS/OpenSpace
+- **Monorepo:** [pnpm Workspaces](https://pnpm.io/workspaces)
+- **Frontend:** [Next.js 15+](https://nextjs.org/), [React 19](https://react.dev/), [Tailwind CSS 4](https://tailwindcss.com/)
+- **Backend:** [Fastify](https://www.fastify.io/) (TypeScript)
+- **Banco de Dados:** SQLite via [LibSQL](https://turso.tech/libsql) & [Drizzle ORM](https://orm.drizzle.team/)
+- **IA Engine:** [CopilotKit](https://www.copilotkit.ai/) integrado com agentes customizados.
+- **Runtime de Execução:** [OpenCode](https://github.com/google/opencode) para execução segura de tarefas de codificação.
 
 ---
 
-## 🟠 OpenClaw ecosystem (agent OS attempt)
+## 🏗️ Arquitetura do Projeto
 
-### Core
-- OpenClaw — https://github.com/openclaw/openclaw
-
-### Orchestration
-- Antfarm — https://github.com/snarktank/antfarm
-- Clawith — https://github.com/dataelement/Clawith
-- Paperclip — https://github.com/paperclipai/paperclip
-
-### Interface
-- ClawX — https://github.com/ValueCell-ai/ClawX
-
----
-
-## 🔴 Agent runtime / execution layer
-
-- Scion — https://github.com/GoogleCloudPlatform/scion
-- Docker Agent — https://github.com/docker/docker-agent
-
-👉 multi-agent execution / container orchestration
+```text
+ai_sdlc/
+├── apps/
+│   ├── agent/          # Backend (Lógica de Agentes, Task Runner, Persistência)
+│   └── web/            # Frontend (Dashboard, Kanban, Knowledge Base, Copilot UI)
+├── packages/
+│   ├── shared/         # Contratos, tipagens e esquemas Zod compartilhados
+│   └── tasks/          # Motores de execução para diferentes tipos de tarefas de IA
+├── docs/               # Documentação detalhada do domínio e sistema
+└── workspaces/         # Sandboxes temporários para execução de código pelos agentes
+```
 
 ---
 
-## 🧩 Agent UI / frontend layer
+## 🚦 Primeiros Passos
 
-- CopilotKit — https://github.com/CopilotKit/CopilotKit
-- LangChain OpenUI — https://docs.langchain.com/oss/javascript/langchain/frontend/integrations/openui
+### Pré-requisitos
+- Node.js (v20+)
+- pnpm (v10+)
+- [OpenCode CLI](https://github.com/google/opencode)
 
-👉 UI + generative interfaces for agents
+### Instalação e Setup
 
----
+```bash
+# Instalar dependências
+pnpm install
 
-## 🔌 Context / Agent Gateway layer
+# Inicializar banco de dados e sementes (seed)
+pnpm db:init
 
-- Context Gateway — https://github.com/Compresr-ai/Context-Gateway
-- AgentGateway — https://github.com/agentgateway/agentgateway
+# Iniciar ambiente de desenvolvimento (Web, Agent e OpenCode)
+pnpm dev
+```
 
-👉 routing, context injection, tool access
-
----
-
-## ⚙️ Infra (agnostic)
-
-- Ollama — https://github.com/ollama/ollama
-- TrustGraph — https://github.com/trustgraph-ai/trustgraph
-- OpenViking — https://github.com/volcengine/OpenViking
-
----
-
-## 🔁 Workflow / Productivity (cross-stack)
-
-- Vibe Kanban — https://github.com/BloopAI/vibe-kanban
+Acessos:
+- **Web App:** `http://localhost:3000`
+- **Agent API:** `http://localhost:3001`
 
 ---
 
-## 🧠 RAG / Memory alternatives
+## 🌟 Funcionalidades de Destaque
 
-- Hindsight — https://github.com/vectorize-io/hindsight
-
----
-
-## 🧪 Tools / niche
-
-- Code Review Graph — https://github.com/tirth8205/code-review-graph
-
----
-
-## 🧪 Reference architectures
-
-- Google Autonomous AI pipelines (Antigravity)  
-  https://codelabs.developers.google.com/autonomous-ai-developer-pipelines-antigravity
+- [x] **Gestão de Spec Dinâmica:** Definição estruturada de requisitos que evolui com o projeto.
+- [x] **Knowledge Base (Documentação Viva):** Geração automática de documentação técnica vinculada diretamente aos artefatos (código, specs e decisões).
+- [x] **Geração de Issues Inteligente:** Decomposição de requisitos complexos em tarefas acionáveis e rastreáveis.
+- [x] **Activity Timeline:** Histórico completo de quem (humano ou IA), quando e por que cada mudança ocorreu.
+- [x] **Session Checkpoints:** Salva o estado mental da sessão para que o desenvolvedor ou a IA possam retomar o trabalho instantaneamente sem perda de contexto.
+- [x] **Sprint Health:** Monitoramento em tempo real da saúde da entrega baseado no alinhamento com a Spec original.
 
 ---
 
-## 🎨 Separate domain (generative media)
+## 📖 Aprofundamento
 
-- ComfyUI — https://github.com/comfy-org/ComfyUI
-- ComfyUI MCP — https://github.com/artokun/comfyui-mcp
-- ComfyUI MCP Server — https://github.com/joenorton/comfyui-mcp-server
-
-  ## 🗄️ Vector / storage layer
-
-- Qdrant — https://github.com/qdrant/qdrant  
-- Weaviate — https://github.com/weaviate/weaviate  
-
-👉 embeddings, retrieval, long-term knowledge storage
-
-## 📊 Evaluation / Observability
-
-- Langfuse — https://github.com/langfuse/langfuse  
-- Helicone — https://github.com/helicone/helicone  
-
-👉 tracing, logs, evaluation, cost tracking
+Para entender os detalhes técnicos e filosóficos, consulte:
+- [01-visao.md](docs/01-visao.md) - Visão estratégica e princípios.
+- [03-workflow.md](docs/03-workflow.md) - O ciclo de vida do SDD na prática.
+- [06-AI-copilot.md](docs/06%20-%20AI%20copilot.md) - Como a IA opera sobre o contexto.
