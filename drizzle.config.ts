@@ -6,6 +6,6 @@ export default {
   out: "./apps/agent/src/db/migrations",
   dialect: "sqlite",
   dbCredentials: {
-    url: "./sqlite.db",
+    url: "./apps/agent/sqlite.db",
   },
 } satisfies Config;

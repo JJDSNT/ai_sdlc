@@ -34,5 +34,6 @@ workspaces/*
 tmp/
 temp/
 
-# task storage
-apps/agent/.agent-data/
+# storage
+dbmigrations/*
+sqlite.db

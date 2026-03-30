@@ -4,7 +4,13 @@
   "version": "1.0.0",
   "packageManager": "pnpm@10.29.3",
   "scripts": {
-    "dev": "concurrently -n opencode,apps -c cyan,green \"pnpm dev:opencode\" \"pnpm dev:apps\"",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "pnpm --filter agent exec tsx src/db/seed.ts",
+    "db:init": "pnpm db:push && pnpm db:seed",
+    "dev": "pnpm db:push && concurrently -n opencode,apps -c cyan,green \"pnpm dev:opencode\" \"pnpm dev:apps\"",
     "dev:apps": "wait-on tcp:4096 && pnpm -r --parallel --filter './apps/*' run dev",
     "dev:opencode": "opencode serve --port 4096",
     "build": "pnpm -r build",
@@ -18,7 +24,7 @@
     "wait-on": "^9.0.4"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
+    "@libsql/client": "^0.17.2",
     "drizzle-orm": "^0.45.2"
   }
 }
