@@ -4,6 +4,8 @@
 
 ## 🟢 Claude Code ecosystem (terminal AI OS)
 
+https://github.com/fpytloun/mnemory
+
 ### Core runtime
 - Claude Code — https://github.com/anthropics/claude-code
 - Superpowers — https://github.com/obra/superpowers
