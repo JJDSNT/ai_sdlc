@@ -1,6 +1,7 @@
 // apps/web/src/app/page.tsx
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { TopNav } from "@/components/layout/top-nav";
 
@@ -17,49 +18,23 @@ type Project = {
   aiHint: string;
 };
 
-const projects: Project[] = [
-  {
-    id: "p-1",
-    name: "Digital Twin Hidrológico",
-    spec: "Simulação e monitoramento de bacias",
-    progress: 42,
-    totalIssues: 12,
-    doneIssues: 5,
-    wip: 2,
-    blocked: 1,
-    lastActivity: "há 2h",
-    aiHint:
-      "Refinar modelo de ingestão de dados e validar consistência temporal.",
-  },
-  {
-    id: "p-2",
-    name: "Sistema de Autenticação",
-    spec: "Identity & Access Management",
-    progress: 68,
-    totalIssues: 16,
-    doneIssues: 11,
-    wip: 3,
-    blocked: 0,
-    lastActivity: "há 30min",
-    aiHint:
-      "Formalizar fluxo de recuperação de conta e validar edge cases.",
-  },
-  {
-    id: "p-3",
-    name: "Plataforma de Observabilidade",
-    spec: "Logs, métricas e tracing",
-    progress: 25,
-    totalIssues: 20,
-    doneIssues: 5,
-    wip: 4,
-    blocked: 3,
-    lastActivity: "há 5h",
-    aiHint:
-      "Alto número de bloqueios — investigar dependências externas.",
-  },
-];
-
 export default function OverviewPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("http://localhost:3001/api/projects")
+      .then((res) => res.json())
+      .then((data) => {
+        setProjects(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
   return (
     <main
       style={{
@@ -130,6 +105,16 @@ export default function OverviewPage() {
           alignContent: "start",
         }}
       >
+        {loading && (
+          <div style={{ color: "#64748b" }}>Carregando projetos...</div>
+        )}
+
+        {!loading && projects.length === 0 && (
+          <div style={{ color: "#64748b" }}>
+            Nenhum projeto encontrado.
+          </div>
+        )}
+
         {projects.map((project) => (
           <ProjectCard key={project.id} project={project} />
         ))}
