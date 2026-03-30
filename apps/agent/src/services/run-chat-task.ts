@@ -1,4 +1,4 @@
-// apps/agent/src/services/run-chat-task.ts
+//apps/agent/src/services/run-chat-task.ts
 
 import {
   createOpenCodeClient,
@@ -69,13 +69,8 @@ export async function runChatTask(
       onDelta: input.onDelta,
     });
 
-    const output = message.text?.trim() || "Execução concluída sem texto de saída";
-
-    // Fallback atual: como o OpenCode ainda responde de forma bloqueante,
-    // emitimos a saída final inteira uma única vez.
-    if (output) {
-      input.onDelta?.(output);
-    }
+    const output =
+      message.text?.trim() || "Execução concluída sem texto de saída";
 
     return {
       sessionId,

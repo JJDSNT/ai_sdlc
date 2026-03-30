@@ -1,10 +1,17 @@
+//apps/agent/src/server.ts
+
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+
 import { tasksRoutes } from "./routes/tasks.js";
 import { taskEventsRoutes } from "./routes/tasks-events.js";
+
 import { registerCopilotRoutes } from "./routes/copilot.js";
 import { registerCopilotInfoRoute } from "./routes/copilot-info.js";
 import { registerCopilotStreamRoute } from "./routes/copilot-stream.js";
+
+import { registerProjectRoutes } from "./routes/projects.js";
+
 import { createOpenCodeClient } from "./adapters/opencode.js";
 
 const app = Fastify({
@@ -59,9 +66,16 @@ async function registerBaseRoutes() {
 async function registerRoutes() {
   await registerBaseRoutes();
 
+  // existing
   await app.register(tasksRoutes);
   await app.register(taskEventsRoutes);
 
+ 
+  await app.register(registerProjectRoutes, {
+    prefix: "/api",
+  });
+
+  // copilot
   await app.register(registerCopilotInfoRoute);
   await app.register(registerCopilotRoutes);
   await app.register(registerCopilotStreamRoute);
@@ -98,13 +112,7 @@ async function start() {
 
     app.log.info(`🚀 Agent running at http://${host}:${port}`);
     app.log.info(
-      `🤖 Copilot info available at http://${host}:${port}/copilot/info`
-    );
-    app.log.info(
-      `🤖 Copilot run available at http://${host}:${port}/copilot/run`
-    );
-    app.log.info(
-      `🤖 Copilot stream available at http://${host}:${port}/copilot/stream`
+      `📦 Projects API at http://${host}:${port}/api/projects`
     );
 
     await checkDependencies();
