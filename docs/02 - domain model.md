@@ -26,6 +26,11 @@ Todas as outras entidades são derivadas ou conectadas à Spec.
 
 # 🔥 3.1 Spec (Especificação)
 
+> ℹ️ Decisão (`ISSUE-0007`): persistida como markdown em `AI_context/specs/`,
+> não como tabela — ver [`09 - ai-context.md`](./09%20-%20ai-context.md). A
+> estrutura abaixo (requisitos, fluxos, regras, edge cases etc.) mapeia para
+> seções do corpo do arquivo, não para colunas.
+
 ## Definição
 
 Representa a definição estruturada do sistema ou funcionalidade.
@@ -105,9 +110,11 @@ Registro estruturado de uma decisão técnica ou de produto.
 
 # 🗂️ 3.4 Issue
 
-> ⚠️ Não confundir com a Issue de `AI_context/issues/*.md` (memória de
-> agente, em markdown, sem vínculo com spec) — ver
-> [`09 - ai-context.md`](./09%20-%20ai-context.md#2-relação-com-a-visão-de-produto-e-uma-ambiguidade-de-nome-a-observar).
+> ℹ️ Decisão (ver [`09 - ai-context.md`](./09%20-%20ai-context.md)): esta
+> Issue **é** a Issue de `AI_context/issues/*.md` — não há uma tabela de
+> banco separada. `spec_id` é o vínculo descrito abaixo, mas é **opcional**
+> (`ISSUE-0008`), porque a mesma Issue também serve como memória de agente
+> para trabalho sem spec.
 
 ## Definição
 
@@ -141,7 +148,8 @@ Unidade executável derivada da spec.
 
 ## Regras
 
-* toda issue deve estar vinculada a uma spec
+* `spec_id` é opcional, não obrigatório (decisão revista em `ISSUE-0008` —
+  issues de memória de agente, sem spec, são um uso válido)
 * issue não pode existir sem origem rastreável
 * issue só pode ser “done” se critérios forem atendidos
 

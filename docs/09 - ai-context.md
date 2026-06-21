@@ -102,14 +102,50 @@ aceito — ambiente local confiável, mesmo padrão já adotado pelo resto do
 
 ---
 
-## 5. Roadmap registrado como backlog
+## 5. Decisão: unificação do lifecycle chat → spec → issue → task
+
+A seção 2 deste documento originalmente tratava a Issue de produto (descrita
+em `docs/02`/`docs/05`, ligada a `spec_id`/`requirement_id` em banco) como
+um conceito **diferente** da Issue do `AI_context`. Essa distinção foi
+revista: depois de avaliar o lifecycle completo do produto
+(`chat → spec → issue → task`, hoje em boa parte mock — ver
+`apps/web/app/definition/page.tsx` e `apps/web/app/execution/page.tsx`),
+duas decisões foram tomadas:
+
+1. **Issue é uma só.** Não existe (e não vai existir) uma tabela `issues`
+   separada. `AI_context/issues/*.md` é a única fonte — tanto para memória
+   de agente quanto para o Kanban de produto. `docs/02`/`docs/05` foram
+   atualizados para refletir isso.
+2. **Spec também é markdown**, em `AI_context/specs/` (`ISSUE-0007`), pelo
+   mesmo motivo: versionamento sai de graça do git, sem precisar de tabela
+   nem de `SpecVersion`.
+
+Motivo prático que confirmou a decisão: o mock do Kanban
+(`apps/web/app/execution/page.tsx:13-66`) já usa ids `ISSUE-101`,
+`ISSUE-102`... com `status`/`priority` quase idênticos ao que
+`IssueFrontmatter` já tinha — a intenção original parecia já apontar para
+um único conceito.
+
+## 5.1 Roadmap registrado como backlog
 
 O trabalho futuro está registrado como issues reais em `AI_context/issues/`,
 não apenas como texto narrativo:
 
 - **ISSUE-0004** — Integração Task ↔ Issue (vincular o sistema de Tasks existente, `apps/agent/src/task-store.ts`, ao `AI_context` do repositório-alvo).
 - **ISSUE-0005** — Cache derivado em `AI_context/metadata/*.json`.
-- **ISSUE-0006** — Interoperabilidade entre edição manual e `mutations.ts` (safeguards básicas, sem reconciliação).
+- **ISSUE-0006** — Interoperabilidade entre edição manual e `mutations.ts` (safeguards básicas, sem reconciliação, incluindo `importIssue`).
+- **ISSUE-0007** — Módulo de Spec persistida no `AI_context` (`AI_context/specs/`).
+- **ISSUE-0008** — Vincular Issue a Spec (`spec_id` opcional no frontmatter).
+- **ISSUE-0009** — API REST no `apps/agent` para Issues e Specs (consumo pelo `apps/web`).
+- **ISSUE-0010** — Conectar `/execution` (Kanban) às Issues reais.
+- **ISSUE-0011** — Conectar `/definition` (Spec) à persistência real.
+- **ISSUE-0012** — Ativar o chat real (`CopilotPanel`, hoje código morto) na página de definição.
+- **ISSUE-0013** — Pesquisa (não implementação): transformação assistida por IA de chat em Spec e de Spec em Issues.
+
+Ordem de dependência recomendada: `0007 → 0008 → 0009 → (0010 e 0011 em
+paralelo)`. `ISSUE-0012` é independente (só depende do que já existe) e
+pode ser feita em qualquer momento. `ISSUE-0013` só faz sentido depois que
+`0007`, `0008` e `0012` existirem de verdade.
 
 `ISSUE-0003` (mutações) e `ISSUE-0002` (MCP) já estão implementadas — ver
 seção 3 e 4.1.

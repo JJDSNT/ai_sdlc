@@ -86,9 +86,14 @@ Representa o espaço principal de trabalho.
 
 ## 5.2 Spec
 
+> ℹ️ Decisão (`ISSUE-0007`, ver [`09 - ai-context.md`](./09%20-%20ai-context.md)):
+> Spec não vira tabela — é markdown versionado em `AI_context/specs/`,
+> mesmo padrão da Issue. `version`/`SpecVersion` (§7.5) deixam de ser
+> necessários: o histórico de versões é o próprio git log do arquivo.
+
 Fonte de verdade do sistema.
 
-### Campos mínimos
+### Campos mínimos (desenho original, não implementado como tabela)
 
 * id
 * project_id
@@ -101,7 +106,7 @@ Fonte de verdade do sistema.
 
 ### Observação
 
-A estrutura interna da spec pode ser persistida em tabelas relacionadas e/ou blocos JSON controlados.
+A estrutura interna da spec pode ser persistida em tabelas relacionadas e/ou blocos JSON controlados — desenho original, superado pela decisão acima.
 
 ---
 
@@ -190,12 +195,19 @@ Relação genérica entre artefatos.
 
 ## 6.1 Issue
 
-> ⚠️ Não confundir com a Issue de `AI_context/issues/*.md` (memória de
-> agente, em markdown, sem tabela própria) — ver [`09 - ai-context.md`](./09%20-%20ai-context.md).
+> ℹ️ Decisão (ver [`09 - ai-context.md`](./09%20-%20ai-context.md)): não há
+> tabela `issues` no banco. A Issue é `AI_context/issues/*.md`
+> (`IssueFrontmatter` em `apps/agent/src/ai-context/types.ts`), que cobre
+> hoje `id`/`title`/`status`/`priority`/`type`/`owner`/`tags`/`related_files`
+> e, depois de `ISSUE-0008`, `spec_id` (opcional). Os campos abaixo
+> (`sprint_id`, `requirement_id`, `acceptance_criteria_json`,
+> `blocked_reason`, `created_from`) são o desenho relacional original,
+> mantido aqui como referência do que ainda pode fazer sentido adicionar ao
+> frontmatter markdown no futuro — nenhum deles existe hoje.
 
 Unidade executável derivada da spec.
 
-### Campos mínimos
+### Campos mínimos (desenho original, não implementado como tabela)
 
 * id
 * project_id
@@ -215,9 +227,13 @@ Unidade executável derivada da spec.
 
 ### Regras
 
-* spec_id obrigatório
-* created_from obrigatório
-* blocked_reason obrigatório quando status = blocked
+* `spec_id` é opcional, não obrigatório (`ISSUE-0008`)
+* `created_from` obrigatório — ainda não existe como campo; equivalente
+  hoje seria `owner` (`agent` vs. um valor que sinalize edição manual, ver
+  `ISSUE-0006`)
+* `blocked_reason` obrigatório quando status = blocked — ainda não existe
+  como campo estruturado; hoje ficaria só no corpo da issue (seção
+  "Observações" ou "Log de execução")
 
 ---
 

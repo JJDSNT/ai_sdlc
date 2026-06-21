@@ -88,6 +88,17 @@ Esta era a integração explicitamente listada como fora de escopo na criação
 inicial do `AI_context` (ver histórico de `ISSUE-0001`) — agora registrada
 como trabalho futuro concreto, não mais apenas "fora de escopo".
 
+Atualização após avaliação mais ampla do lifecycle `chat → spec → issue →
+task` (`ISSUE-0007` a `ISSUE-0013`): a Issue de produto foi unificada com a
+Issue do `AI_context` (não existe mais uma tabela `issues` separada no
+banco). Isso simplifica esta issue — "Task → Issue" passa a significar
+literalmente "task vinculada a um arquivo em `AI_context/issues/`", o
+mesmo conceito usado pelo Kanban web (`ISSUE-0010`) e pelo MCP (`ISSUE-0002`).
+Uma chat Task que formaliza uma Spec (`ISSUE-0012`/`ISSUE-0013`) é um caso
+particular do mesmo padrão, só que produzindo uma Spec em vez de uma Issue.
+
 # Log de execução
 
 - 2026-06-21: issue registrada em backlog.
+- 2026-06-21: contextualizada dentro do roadmap de unificação do lifecycle
+  chat → spec → issue → task (`ISSUE-0007` a `ISSUE-0013`).
