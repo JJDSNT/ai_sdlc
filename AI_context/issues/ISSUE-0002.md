@@ -59,6 +59,9 @@ Nada ainda — issue em `backlog`.
 
 # O que falta fazer
 
+- Resolver `ISSUE-0006` (interoperabilidade entre edição manual e
+  `mutations.ts`) antes ou junto desta issue — o servidor MCP vai expor
+  exatamente as funções que hoje têm risco de descartar edições manuais.
 - Decidir o transporte MCP (stdio vs SSE/HTTP) e onde o servidor MCP roda
   (processo dedicado, ou exposto a partir de `apps/agent`).
 - Mapear 1:1 cada função de `apps/agent/src/ai-context/issues.ts` e
