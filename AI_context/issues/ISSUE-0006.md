@@ -64,6 +64,9 @@ perder dados e deixar uma expectativa clara, com a menor mudança possível:
   subsequente do `ai_sdlc`.
 - `AI_context/README.md`, gerado pelo scaffold, declara que o uso do
   `ai_sdlc` é opcional.
+- Um arquivo que hoje seria ignorado por falhar a validação pode ser
+  normalizado para o formato válido através de uma ação explícita
+  (`importIssue`), em vez de exigir edição manual de todo o frontmatter.
 
 # O que foi feito
 
@@ -71,7 +74,7 @@ Nada ainda — issue em `backlog`.
 
 # O que falta fazer
 
-Três mudanças pequenas, sem nada além disso:
+Quatro mudanças pequenas, sem nada além disso:
 
 1. `IssueFrontmatterSchema` (`types.ts`): trocar o padrão `.strip()` do Zod
    por `.passthrough()`, pra campos desconhecidos sobreviverem à validação
@@ -84,13 +87,34 @@ Três mudanças pequenas, sem nada além disso:
 3. `README_MAIN` (`templates.ts`): uma frase explícita dizendo que
    `AI_context/` foi gerado por/para o `ai_sdlc`, mas que ler/criar/editar
    esses arquivos manualmente, sem nenhuma ferramenta, é um uso suportado.
+4. `importIssue(repositoryRoot, filePath)` (`mutations.ts`): lê um arquivo
+   que falhou a validação de `IssueFrontmatterSchema` e o reescreve no
+   formato válido, preenchendo **somente** os campos obrigatórios ausentes
+   com defaults fixos e determinísticos — nunca inferidos do conteúdo:
+   - `id`: próximo `ISSUE-XXXX` sequencial, se ausente ou já em uso.
+   - `status`: `backlog`.
+   - `priority`: `medium`.
+   - `type`: `feature` (default neutro; não há como inferir o tipo certo).
+   - `owner`: `manual` — sinaliza que a issue não nasceu de uma mutation do
+     `ai_sdlc`, útil pra rastrear origem depois.
+   - `created_at`/`updated_at`: data de hoje.
+   Campos já presentes e válidos são preservados como estão. `title`
+   continua obrigatório e sem default: se faltar, `importIssue` falha com
+   `AiContextMutationError`, não inventa um título. É uma ação explícita,
+   chamada deliberadamente — nunca disparada automaticamente por
+   `listIssues`/`readIssue`.
 
 # Fora de escopo (de propósito, pra não virar over-engineering)
 
-- Não mudar o comportamento de frontmatter inválido na leitura — continua
-  sendo ignorado com `console.warn`. Isso já é proteção suficiente contra
-  quebrar o fluxo do `ai_sdlc`; reportar rejeições de forma estruturada é
-  complexidade que ninguém pediu.
+- `listIssues`/`readIssue` continuam sem mudança no comportamento de
+  leitura — frontmatter inválido continua sendo ignorado com
+  `console.warn`, nunca normalizado automaticamente. `importIssue` é uma
+  ação separada que alguém (humano ou agente) decide chamar; leitura
+  nunca tem efeito colateral de reescrever arquivo.
+- Sem inferência de conteúdo a partir de texto livre (ex. extrair título
+  de um parágrafo, adivinhar prioridade pelo tom). Só defaults fixos para
+  os campos obrigatórios que estiverem ausentes — qualquer coisa mais
+  esperta que isso é a complexidade que este issue existe para evitar.
 - Não tocar no corpo da issue — `updateIssue`/`appendIssueLog` já
   preservam `current.body` quando não fornecido explicitamente; nenhuma
   mudança necessária aí.
@@ -110,6 +134,10 @@ Nenhuma ainda.
       sobre o mesmo arquivo (teste real, sem mocks).
 - [ ] `AI_context/README.md` gerado pelo scaffold declara explicitamente
       que o uso do `ai_sdlc` não é obrigatório.
+- [ ] `importIssue` normaliza um arquivo malformado de teste real (sem
+      mocks), preservando campos válidos e usando só defaults fixos para
+      os obrigatórios ausentes; `title` ausente continua sendo erro, nunca
+      um default inventado.
 
 # Observações
 
@@ -120,10 +148,12 @@ o mesmo repositório-alvo, sem que um fluxo quebre o outro. Vale resolver
 isso antes ou junto de `ISSUE-0002`, já que o servidor MCP vai expor
 exatamente as mesmas `mutations.ts` que hoje têm esse risco.
 
-Escopo deliberadamente reduzido a 3 mudanças pequenas (ver "O que falta
-fazer"/"Fora de escopo") após feedback do usuário: o objetivo é uma
-safeguard básica, não um sistema de reconciliação entre edições manuais e
-automatizadas.
+Escopo deliberadamente reduzido (ver "O que falta fazer"/"Fora de escopo")
+após feedback do usuário: o objetivo é uma safeguard básica, não um sistema
+de reconciliação entre edições manuais e automatizadas. `importIssue`
+(item 4) foi adicionado depois, a partir de outra sugestão do usuário,
+mantendo o mesmo limite: defaults fixos e determinísticos, nunca
+inferência de conteúdo.
 
 # Log de execução
 
