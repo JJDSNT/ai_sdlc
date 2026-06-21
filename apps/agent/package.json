@@ -8,10 +8,12 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "mcp:ai-context": "tsx src/ai-context/mcp/server.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "fastify": "^5.8.4",
     "zod": "^4.3.6"
   },

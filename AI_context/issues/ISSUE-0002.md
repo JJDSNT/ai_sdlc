@@ -1,7 +1,7 @@
 ---
 id: ISSUE-0002
 title: Camada MCP sobre o AI_context
-status: backlog
+status: review
 priority: medium
 type: feature
 owner: agent
@@ -11,9 +11,13 @@ tags:
   - ai-context
   - mcp
 related_files:
+  - apps/agent/src/ai-context/mcp/server.ts
+  - apps/agent/src/ai-context/mcp/security.ts
   - apps/agent/src/ai-context/issues.ts
-  - apps/agent/src/ai-context/scaffold.ts
+  - apps/agent/src/ai-context/mutations.ts
   - apps/agent/src/ai-context/index.ts
+  - apps/agent/package.json
+  - docs/09 - ai-context.md
 ---
 
 # Resumo
@@ -55,34 +59,65 @@ estabelecido em `apps/agent/src/ai-context/issues.ts`.
 
 # O que foi feito
 
-Nada ainda — issue em `backlog`.
+- `@modelcontextprotocol/sdk` (`^1.28.0`) adicionado como dependência direta
+  de `apps/agent` — já estava resolvido no lockfile como transitivo, sem
+  conflito de peer dependency com o `zod ^4.3.6` já usado no projeto
+  (o SDK aceita `zod: "^3.25 || ^4.0"`).
+- `apps/agent/src/ai-context/mcp/server.ts`: `McpServer` + `StdioServerTransport`,
+  registrando as 8 ferramentas (`list_issues`, `read_issue`, `search_context`,
+  `create_issue`, `update_issue`, `append_issue_log`, `move_issue_status`,
+  `consolidate_issue`), cada uma recebendo `repositoryRoot` explícito e
+  delegando para `apps/agent/src/ai-context/index.ts` (`issues.ts`/`mutations.ts`).
+- `apps/agent/src/ai-context/mcp/security.ts`: `resolveSafeRepositoryRoot`,
+  reaproveitando o mesmo mecanismo de `REPO_ALLOWED_ROOT` já usado em
+  `run-repo-command-task.ts` — fora dela, qualquer caminho é aceito (mesmo
+  padrão de confiança local já existente no `apps/agent`).
+- Script `pnpm --filter agent run mcp:ai-context` para rodar o servidor.
+- `docs/09 - ai-context.md` atualizado com a seção "Servidor MCP" (como
+  rodar, exemplo de configuração de cliente, nota de segurança).
+- Testado de ponta a ponta com um cliente MCP real (`Client` +
+  `StdioClientTransport` do próprio SDK, não só chamadas diretas de função):
+  `initialize`, `tools/list` (8 ferramentas com JSON Schema correto),
+  create → update → append_issue_log → transições válidas → transição
+  inválida (`done → consolidated` via `move_issue_status`, rejeitada
+  corretamente) → `consolidate_issue` real → `read_issue` confirmando o
+  resultado. Testado também o bloqueio de `REPO_ALLOWED_ROOT` contra um
+  `repositoryRoot` fora do permitido.
+- Esta própria issue foi movida `backlog → ready → doing → review` e logada
+  através do servidor MCP real (chamando `move_issue_status`/
+  `append_issue_log` via um cliente MCP, não a função TypeScript direto).
 
 # O que falta fazer
 
-- Resolver `ISSUE-0006` (interoperabilidade entre edição manual e
-  `mutations.ts`) antes ou junto desta issue — o servidor MCP vai expor
-  exatamente as funções que hoje têm risco de descartar edições manuais.
-- Decidir o transporte MCP (stdio vs SSE/HTTP) e onde o servidor MCP roda
-  (processo dedicado, ou exposto a partir de `apps/agent`).
-- Mapear 1:1 cada função de `apps/agent/src/ai-context/issues.ts` e
-  `apps/agent/src/ai-context/mutations.ts` (já implementado em `ISSUE-0003`)
-  para uma definição de ferramenta MCP (nome, schema de input/output).
-- Definir estratégia de autenticação/escopo (quais repositórios um cliente
-  MCP pode acessar) — hoje `repositoryRoot` é um parâmetro livre, o que pode
-  ser um risco de acesso a caminhos arbitrários do disco.
+- `ISSUE-0006` (interoperabilidade entre edição manual e `mutations.ts`)
+  continua em backlog, não foi resolvida antes desta — decisão explícita do
+  usuário de seguir direto para o MCP. O risco que ela descreve (campo extra
+  de frontmatter sendo descartado) se aplica integralmente às ferramentas de
+  escrita expostas aqui.
+- Nada além disso planejado para o escopo desta issue.
 
 # Decisões tomadas
 
-Nenhuma ainda.
+- Transporte: stdio, não SSE/HTTP. É o que clientes locais (Claude Code,
+  Codex) spawnam diretamente como subprocesso; não exige o Fastify do
+  `apps/agent` rodando.
+- Onde roda: processo dedicado (`mcp/server.ts`), independente do servidor
+  Fastify (`server.ts`) — cada cliente MCP sobe sua própria instância via
+  stdio, não é algo "montado" na API HTTP existente.
+- Segurança: reaproveitado `REPO_ALLOWED_ROOT` em vez de inventar um modelo
+  novo de permissão — consistente com o resto do `apps/agent` e suficiente
+  para o uso local pretendido.
+- stdout é reservado para o protocolo MCP; qualquer log de diagnóstico vai
+  para stderr (`console.error`).
 
 # Critérios de aceite
 
-- [ ] Servidor/adapter MCP implementado e documentado.
-- [ ] `list_issues`, `read_issue`, `search_context` expostos e testados
+- [x] Servidor/adapter MCP implementado e documentado.
+- [x] `list_issues`, `read_issue`, `search_context` expostos e testados
       contra um `repositoryRoot` real.
-- [ ] Ferramentas de mutação expostas após `ISSUE-0003` concluída.
-- [ ] Estratégia de escopo/segurança para `repositoryRoot` definida e
-      aplicada.
+- [x] Ferramentas de mutação expostas (`ISSUE-0003` concluída).
+- [x] Estratégia de escopo/segurança para `repositoryRoot` definida e
+      aplicada (`REPO_ALLOWED_ROOT`, testado).
 
 # Observações
 
@@ -93,3 +128,4 @@ Esta issue era o item "Integração com MCP" listado em "O que falta fazer" de
 
 - 2026-06-21: issue registrada em backlog, a partir do desmembramento de
   `ISSUE-0001`.
+- 2026-06-21: servidor MCP implementado e testado de ponta a ponta via cliente MCP real (não só chamadas diretas de função); movida para doing via move_issue_status real, através do próprio servidor MCP.

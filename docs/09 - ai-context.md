@@ -40,6 +40,8 @@ Módulo `apps/agent/src/ai-context/`:
 - `templates.ts` — fonte canônica dos templates de issue/consolidated e dos READMEs.
 - `scaffold.ts` — `scaffoldAiContext(repositoryRoot)`: materializa a estrutura `AI_context/` em **qualquer** repositório-alvo, de forma idempotente (nunca sobrescreve arquivo existente).
 - `issues.ts` — `listIssues`, `readIssue`, `filterIssuesByStatus`, `filterIssuesByPriority`, `searchIssuesByTag`: leitura direta do markdown, sem cache/banco.
+- `mutations.ts` — `createIssue`, `updateIssue`, `appendIssueLog`, `moveIssueStatus`, `consolidateIssue`: escrita, com numeração sequencial e validação de transição de status.
+- `mcp/server.ts` + `mcp/security.ts` — servidor MCP via stdio que expõe as funções acima como ferramentas (ver seção 4.1).
 - `verify.script.ts` — script manual de verificação ponta a ponta.
 
 Toda função pública recebe `repositoryRoot: string` explícito — o mesmo
@@ -62,15 +64,55 @@ esse é o documento vivo e autoritativo; não duplicar aqui.
 
 ---
 
+## 4.1 Servidor MCP
+
+`apps/agent/src/ai-context/mcp/server.ts` expõe `list_issues`, `read_issue`,
+`search_context`, `create_issue`, `update_issue`, `append_issue_log`,
+`move_issue_status` e `consolidate_issue` como ferramentas MCP via stdio.
+
+Cada ferramenta recebe `repositoryRoot` explicitamente — o servidor não
+assume nenhum diretório fixo, e pode operar sobre qualquer repositório-alvo
+em qualquer chamada, não só sobre o `ai_sdlc`.
+
+Rodar manualmente:
+
+```bash
+pnpm --filter agent run mcp:ai-context
+```
+
+Configuração de cliente (ex. Claude Code, `.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "ai-context": {
+      "command": "pnpm",
+      "args": ["--filter", "agent", "exec", "tsx", "src/ai-context/mcp/server.ts"],
+      "cwd": "/caminho/para/ai_sdlc"
+    }
+  }
+}
+```
+
+Segurança: se a variável de ambiente `REPO_ALLOWED_ROOT` estiver definida
+(mesmo mecanismo já usado por `run-repo-command-task.ts`), toda chamada com
+`repositoryRoot` fora dela é rejeitada. Sem a variável, qualquer caminho é
+aceito — ambiente local confiável, mesmo padrão já adotado pelo resto do
+`apps/agent`.
+
+---
+
 ## 5. Roadmap registrado como backlog
 
 O trabalho futuro está registrado como issues reais em `AI_context/issues/`,
 não apenas como texto narrativo:
 
-- **ISSUE-0003** — Mutações (`create`/`update`/`append`/`move`/`consolidate`) — pré-requisito das duas seguintes.
-- **ISSUE-0002** — Camada MCP sobre o `AI_context` (expõe as operações como ferramentas MCP).
 - **ISSUE-0004** — Integração Task ↔ Issue (vincular o sistema de Tasks existente, `apps/agent/src/task-store.ts`, ao `AI_context` do repositório-alvo).
 - **ISSUE-0005** — Cache derivado em `AI_context/metadata/*.json`.
+- **ISSUE-0006** — Interoperabilidade entre edição manual e `mutations.ts` (safeguards básicas, sem reconciliação).
+
+`ISSUE-0003` (mutações) e `ISSUE-0002` (MCP) já estão implementadas — ver
+seção 3 e 4.1.
 
 ---
 
