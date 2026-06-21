@@ -40,12 +40,13 @@ A plataforma resolve o problema da fragmentação de ferramentas e perda de cont
 ```text
 ai_sdlc/
 ├── apps/
-│   ├── agent/          # Backend (Lógica de Agentes, Task Runner, Persistência)
+│   ├── agent/          # Backend (Lógica de Agentes, Task Runner, Persistência, AI_context)
 │   └── web/            # Frontend (Dashboard, Kanban, Knowledge Base, Copilot UI)
 ├── packages/
 │   ├── shared/         # Contratos, tipagens e esquemas Zod compartilhados
 │   └── tasks/          # Motores de execução para diferentes tipos de tarefas de IA
 ├── docs/               # Documentação detalhada do domínio e sistema
+├── AI_context/         # Memória operacional persistente para agentes (ver docs/09)
 └── workspaces/         # Sandboxes temporários para execução de código pelos agentes
 ```
 
@@ -94,3 +95,6 @@ Para entender os detalhes técnicos e filosóficos, consulte:
 - [01-visao.md](docs/01-visao.md) - Visão estratégica e princípios.
 - [03-workflow.md](docs/03-workflow.md) - O ciclo de vida do SDD na prática.
 - [06-AI-copilot.md](docs/06%20-%20AI%20copilot.md) - Como a IA opera sobre o contexto.
+- [09 - ai-context.md](docs/09%20-%20ai-context.md) - Memória operacional persistente: o que já está implementado, e como difere da Issue de produto (Spec-Driven).
+
+> A convenção de uso do dia a dia (estrutura de pastas, status/prioridade/tipo permitidos) vive em [`AI_context/README.md`](AI_context/README.md) — esse é o documento vivo, não este README.

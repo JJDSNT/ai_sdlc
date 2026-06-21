@@ -190,6 +190,9 @@ Relação genérica entre artefatos.
 
 ## 6.1 Issue
 
+> ⚠️ Não confundir com a Issue de `AI_context/issues/*.md` (memória de
+> agente, em markdown, sem tabela própria) — ver [`09 - ai-context.md`](./09%20-%20ai-context.md).
+
 Unidade executável derivada da spec.
 
 ### Campos mínimos

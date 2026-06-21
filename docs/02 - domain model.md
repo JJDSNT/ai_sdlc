@@ -105,6 +105,10 @@ Registro estruturado de uma decisão técnica ou de produto.
 
 # 🗂️ 3.4 Issue
 
+> ⚠️ Não confundir com a Issue de `AI_context/issues/*.md` (memória de
+> agente, em markdown, sem vínculo com spec) — ver
+> [`09 - ai-context.md`](./09%20-%20ai-context.md#2-relação-com-a-visão-de-produto-e-uma-ambiguidade-de-nome-a-observar).
+
 ## Definição
 
 Unidade executável derivada da spec.
