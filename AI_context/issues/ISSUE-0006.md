@@ -55,51 +55,59 @@ editar, com ou sem `ai_sdlc`.
 
 # Objetivo
 
-- Edições manuais (sem `ai_sdlc`) não devem ser destruídas pela próxima
-  escrita feita pelo `ai_sdlc` através de `mutations.ts`.
-- Edições manuais malformadas (fora do schema esperado) não devem quebrar o
-  fluxo de quem usa o `ai_sdlc` (hoje: a issue é só ignorada na listagem —
-  decidir se isso é suficiente ou se merece um sinal mais visível).
-- `AI_context/README.md`, gerado pelo scaffold, deve declarar explicitamente
-  que a estrutura foi criada por e para o `ai_sdlc`, mas que seu uso não é
-  obrigatório: qualquer pessoa ou agente pode ler, criar e editar os
-  arquivos manualmente, sem nenhuma ferramenta.
+Resolver isso com **safeguards básicas, não um sistema de reconciliação**.
+Não há merge inteligente de conflitos, não há versionamento de schema, não
+há relatório estruturado de erros de parsing — o objetivo é só parar de
+perder dados e deixar uma expectativa clara, com a menor mudança possível:
+
+- Campo extra de frontmatter adicionado à mão sobrevive a uma escrita
+  subsequente do `ai_sdlc`.
+- `AI_context/README.md`, gerado pelo scaffold, declara que o uso do
+  `ai_sdlc` é opcional.
 
 # O que foi feito
 
-Nada ainda — issue em `backlog`. Esta issue registra o problema e as
-decisões abertas; a implementação fica para quando for priorizada.
+Nada ainda — issue em `backlog`.
 
 # O que falta fazer
 
-- Decidir se `IssueFrontmatterSchema` deve preservar campos desconhecidos
-  (`.passthrough()` no Zod) em vez de descartá-los (`.strip()`, padrão
-  atual), e se `frontmatterToRecord`/`updateIssue`/`moveIssueStatus`/
-  `appendIssueLog` devem repassar esses campos extras de volta ao gravar.
-- Decidir o que fazer com frontmatter inválido na leitura: manter o
-  comportamento atual (ignorar com `console.warn`), ou expor isso de forma
-  mais explícita (ex. `listIssues` retornar também os arquivos
-  rejeitados e o motivo, deixando quem chama decidir o que fazer).
-- Atualizar `README_MAIN` (`templates.ts`) com uma seção curta deixando
-  explícito que `AI_context/` não exige `ai_sdlc` — é uma convenção de
-  arquivos, não uma feature proprietária.
-- Avaliar se o corpo da issue (não só o frontmatter) tem o mesmo risco:
-  hoje `updateIssue`/`appendIssueLog` preservam `current.body` quando não
-  fornecido explicitamente, então uma seção customizada adicionada à mão
-  sobrevive — confirmar que isso continua valendo depois de qualquer
-  mudança feita por esta issue.
+Três mudanças pequenas, sem nada além disso:
+
+1. `IssueFrontmatterSchema` (`types.ts`): trocar o padrão `.strip()` do Zod
+   por `.passthrough()`, pra campos desconhecidos sobreviverem à validação
+   em vez de serem descartados.
+2. `frontmatterToRecord` (`mutations.ts`): hoje monta o record campo a
+   campo, manualmente, só com os campos conhecidos do schema — trocar para
+   espalhar os campos conhecidos (na ordem fixa atual, por legibilidade) e
+   depois incluir qualquer campo extra que `.passthrough()` tenha
+   preservado, sem tentar entender ou reordenar esses campos.
+3. `README_MAIN` (`templates.ts`): uma frase explícita dizendo que
+   `AI_context/` foi gerado por/para o `ai_sdlc`, mas que ler/criar/editar
+   esses arquivos manualmente, sem nenhuma ferramenta, é um uso suportado.
+
+# Fora de escopo (de propósito, pra não virar over-engineering)
+
+- Não mudar o comportamento de frontmatter inválido na leitura — continua
+  sendo ignorado com `console.warn`. Isso já é proteção suficiente contra
+  quebrar o fluxo do `ai_sdlc`; reportar rejeições de forma estruturada é
+  complexidade que ninguém pediu.
+- Não tocar no corpo da issue — `updateIssue`/`appendIssueLog` já
+  preservam `current.body` quando não fornecido explicitamente; nenhuma
+  mudança necessária aí.
+- Sem lock de arquivo, sem merge de conflito, sem detecção de edição
+  concorrente. Continua "last write wins", como já decidido em
+  `ISSUE-0003`.
 
 # Decisões tomadas
 
-Nenhuma ainda — issue registra o problema, não a solução.
+Nenhuma ainda.
 
 # Critérios de aceite
 
-- [ ] Uma edição manual com campo extra de frontmatter sobrevive a uma
+- [ ] `IssueFrontmatterSchema` usa `.passthrough()`.
+- [ ] Um campo extra de frontmatter adicionado à mão sobrevive a uma
       chamada subsequente de `updateIssue`/`moveIssueStatus`/`appendIssueLog`
       sobre o mesmo arquivo (teste real, sem mocks).
-- [ ] Comportamento para frontmatter manualmente malformado decidido e
-      documentado (não é mais um efeito colateral implícito do parser).
 - [ ] `AI_context/README.md` gerado pelo scaffold declara explicitamente
       que o uso do `ai_sdlc` não é obrigatório.
 
@@ -111,6 +119,11 @@ humanos editando `AI_context/` diretamente devem conseguir coexistir sobre
 o mesmo repositório-alvo, sem que um fluxo quebre o outro. Vale resolver
 isso antes ou junto de `ISSUE-0002`, já que o servidor MCP vai expor
 exatamente as mesmas `mutations.ts` que hoje têm esse risco.
+
+Escopo deliberadamente reduzido a 3 mudanças pequenas (ver "O que falta
+fazer"/"Fora de escopo") após feedback do usuário: o objetivo é uma
+safeguard básica, não um sistema de reconciliação entre edições manuais e
+automatizadas.
 
 # Log de execução
 
