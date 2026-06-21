@@ -51,9 +51,13 @@ export function parseFrontmatter(raw: string): ParsedMarkdown {
       flushList();
 
       const [, key, value] = keyLine;
+      const trimmedValue = value.trim();
 
-      if (value.trim().length > 0) {
-        frontmatter[key] = value.trim();
+      if (trimmedValue === "[]") {
+        frontmatter[key] = [];
+        currentKey = null;
+      } else if (trimmedValue.length > 0) {
+        frontmatter[key] = trimmedValue;
         currentKey = null;
       } else {
         currentKey = key;

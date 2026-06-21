@@ -60,8 +60,9 @@ Nada ainda — issue em `backlog`.
 - Decidir como uma Task referencia sua Issue vinculada (novo campo em
   `Task`/`tasks` no schema? ou inferência por convenção, ex.
   `related_files` contém o path da task?).
-- Depende de `ISSUE-0003` (mutações) — sem `createIssue`/`appendIssueLog`
-  implementados, esta integração não tem como escrever no `AI_context`.
+- `ISSUE-0003` (mutações) está em `review` — `createIssue`/`appendIssueLog`
+  já existem em `apps/agent/src/ai-context/mutations.ts` e podem ser
+  chamados a partir daqui.
 - Definir comportamento quando o `repositoryRoot` da task ainda não tem
   `AI_context/` escaffoldado (chamar `scaffoldAiContext` automaticamente?
   ou exigir que já exista?).

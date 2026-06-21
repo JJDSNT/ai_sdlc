@@ -39,7 +39,8 @@ de leitura já existentes:
 - `read_issue`
 - `search_context`
 
-E, depois que `ISSUE-0003` (mutações) estiver concluída, as ferramentas de
+E, agora que `ISSUE-0003` (mutações) está em `review` com
+`apps/agent/src/ai-context/mutations.ts` implementado, as ferramentas de
 escrita:
 
 - `create_issue`
@@ -60,10 +61,9 @@ Nada ainda — issue em `backlog`.
 
 - Decidir o transporte MCP (stdio vs SSE/HTTP) e onde o servidor MCP roda
   (processo dedicado, ou exposto a partir de `apps/agent`).
-- Mapear 1:1 cada função de `apps/agent/src/ai-context/issues.ts` para uma
-  definição de ferramenta MCP (nome, schema de input/output).
-- Aguardar `ISSUE-0003` para expor as ferramentas de mutação; até então,
-  expor apenas as de leitura.
+- Mapear 1:1 cada função de `apps/agent/src/ai-context/issues.ts` e
+  `apps/agent/src/ai-context/mutations.ts` (já implementado em `ISSUE-0003`)
+  para uma definição de ferramenta MCP (nome, schema de input/output).
 - Definir estratégia de autenticação/escopo (quais repositórios um cliente
   MCP pode acessar) — hoje `repositoryRoot` é um parâmetro livre, o que pode
   ser um risco de acesso a caminhos arbitrários do disco.
