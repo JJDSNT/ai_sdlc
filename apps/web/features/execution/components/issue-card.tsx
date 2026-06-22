@@ -1,19 +1,34 @@
 // apps/web/features/execution/components/issue-card.tsx
 
-import {
-  getMissingDependencies,
-  isCardBlocked,
-} from "@/features/execution/lib/issue-dependencies";
-import type { ExecutionCard } from "@/features/execution/types";
+"use client";
+
+import { getMissingDependencies } from "@/features/execution/lib/issue-dependencies";
+import type { ExecutionCard, ExecutionCardStatus } from "@/features/execution/types";
+
+const STATUS_OPTIONS: ExecutionCardStatus[] = [
+  "backlog",
+  "ready",
+  "doing",
+  "review",
+  "done",
+  "blocked",
+];
 
 type Props = Readonly<{
   card: ExecutionCard;
-  allCards?: ExecutionCard[];
+  allCards: ExecutionCard[];
+  onMoveStatus: (issueId: string, status: ExecutionCardStatus) => Promise<void>;
 }>;
 
-export function ExecutionIssueCard({ card, allCards = [] }: Props) {
+export function ExecutionIssueCard({ card, allCards, onMoveStatus }: Props) {
   const missingDependencies = getMissingDependencies(card, allCards);
-  const blocked = isCardBlocked(card, allCards);
+  const blocked = card.status === "blocked" || missingDependencies.length > 0;
+
+  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextStatus = event.target.value as ExecutionCardStatus;
+    if (nextStatus === card.status) return;
+    void onMoveStatus(card.id, nextStatus);
+  };
 
   return (
     <div
@@ -46,10 +61,6 @@ export function ExecutionIssueCard({ card, allCards = [] }: Props) {
         {card.title}
       </div>
 
-      <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
-        {card.description}
-      </div>
-
       <div
         style={{
           display: "flex",
@@ -61,6 +72,12 @@ export function ExecutionIssueCard({ card, allCards = [] }: Props) {
         <MetaTag>{formatPriority(card.priority)}</MetaTag>
         <MetaTag>{formatEffort(card.effort)}</MetaTag>
 
+        {card.tags.slice(0, 2).map((tag) => (
+          <MetaTag key={tag} subtle>
+            {tag}
+          </MetaTag>
+        ))}
+
         {missingDependencies.length > 0 ? (
           <MetaTag subtle>
             Dep: {missingDependencies.slice(0, 2).join(", ")}
@@ -68,6 +85,27 @@ export function ExecutionIssueCard({ card, allCards = [] }: Props) {
           </MetaTag>
         ) : null}
       </div>
+
+      <select
+        value={card.status}
+        onChange={handleChange}
+        style={{
+          marginTop: 4,
+          padding: "6px 8px",
+          borderRadius: 8,
+          border: "1px solid #e2e8f0",
+          fontSize: 12,
+          fontWeight: 700,
+          color: "#334155",
+          background: "#f8fafc",
+        }}
+      >
+        {STATUS_OPTIONS.map((status) => (
+          <option key={status} value={status}>
+            {formatStatus(status)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -114,7 +152,7 @@ function MetaTag({
   );
 }
 
-function formatPriority(priority?: ExecutionCard["priority"]) {
+function formatPriority(priority: ExecutionCard["priority"]) {
   switch (priority) {
     case "critical":
       return "Critical";
@@ -132,4 +170,21 @@ function formatPriority(priority?: ExecutionCard["priority"]) {
 function formatEffort(effort?: ExecutionCard["effort"]) {
   if (!effort) return "Effort -";
   return `Effort ${effort.toUpperCase()}`;
+}
+
+function formatStatus(status: ExecutionCardStatus) {
+  switch (status) {
+    case "backlog":
+      return "Backlog";
+    case "ready":
+      return "Ready";
+    case "doing":
+      return "Doing";
+    case "review":
+      return "Review";
+    case "done":
+      return "Done";
+    case "blocked":
+      return "Blocked";
+  }
 }

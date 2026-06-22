@@ -183,6 +183,87 @@ async function main() {
   await rm(linkedIssue.filePath, { force: true });
   await rm(specForLink.filePath, { force: true });
   console.log("smoke test de spec_id (ISSUE-0008): ok (artefatos de teste removidos)");
+
+  // Smoke test descartável de effort/depends_on (ISSUE-0010): cria uma
+  // cadeia de 3 issues encadeadas por depends_on, confirma round-trip,
+  // confirma que uma mutation subsequente preserva os dois campos, e
+  // confirma que tentar fechar um ciclo é rejeitado.
+  const depBase = await createIssue(repositoryRoot, {
+    title: "[verify.script] base da cadeia de dependências",
+    priority: "medium",
+    type: "research",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+    effort: "s",
+  });
+  console.assert(depBase.frontmatter.effort === "s", "createIssue deveria persistir effort");
+  console.assert(
+    Array.isArray(depBase.frontmatter.depends_on) && depBase.frontmatter.depends_on.length === 0,
+    "depends_on deveria default para [] quando omitido"
+  );
+
+  const depMiddle = await createIssue(repositoryRoot, {
+    title: "[verify.script] meio da cadeia de dependências",
+    priority: "medium",
+    type: "research",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+    effort: "m",
+    depends_on: [depBase.frontmatter.id],
+  });
+
+  const depTop = await createIssue(repositoryRoot, {
+    title: "[verify.script] topo da cadeia de dependências",
+    priority: "medium",
+    type: "research",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+    effort: "l",
+    depends_on: [depMiddle.frontmatter.id],
+  });
+
+  const rereadTop = await readIssue(repositoryRoot, depTop.frontmatter.id);
+  console.assert(
+    rereadTop?.frontmatter.depends_on?.[0] === depMiddle.frontmatter.id,
+    "depends_on deveria sobreviver à releitura do arquivo"
+  );
+
+  await appendIssueLog(repositoryRoot, depTop.frontmatter.id, "mutation subsequente sem tocar em effort/depends_on");
+  const afterDepMutation = await readIssue(repositoryRoot, depTop.frontmatter.id);
+  console.assert(
+    afterDepMutation?.frontmatter.effort === "l" &&
+      afterDepMutation?.frontmatter.depends_on?.[0] === depMiddle.frontmatter.id,
+    "effort/depends_on deveriam sobreviver a uma mutation subsequente (appendIssueLog)"
+  );
+
+  try {
+    await updateIssue(repositoryRoot, depBase.frontmatter.id, {
+      depends_on: [depTop.frontmatter.id],
+    });
+    console.error("esperava AiContextMutationError ao tentar fechar um ciclo de depends_on");
+  } catch (error) {
+    console.assert(
+      error instanceof AiContextMutationError,
+      "fechar um ciclo (base -> topo, quando topo já depende indiretamente de base) deveria lançar AiContextMutationError"
+    );
+  }
+
+  try {
+    await updateIssue(repositoryRoot, depBase.frontmatter.id, {
+      depends_on: [depBase.frontmatter.id],
+    });
+    console.error("esperava AiContextMutationError ao tentar depender de si mesma");
+  } catch (error) {
+    console.assert(
+      error instanceof AiContextMutationError,
+      "depends_on contendo o próprio id deveria lançar AiContextMutationError"
+    );
+  }
+
+  await rm(depBase.filePath, { force: true });
+  await rm(depMiddle.filePath, { force: true });
+  await rm(depTop.filePath, { force: true });
+  console.log("smoke test de effort/depends_on (ISSUE-0010): ok (artefatos de teste removidos)");
 }
 
 main();

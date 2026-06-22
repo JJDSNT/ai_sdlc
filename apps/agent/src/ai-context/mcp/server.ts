@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import {
+  IssueEffortSchema,
   IssuePrioritySchema,
   IssueStatusSchema,
   IssueTypeSchema,
@@ -125,6 +126,8 @@ server.registerTool(
       related_files: z.array(z.string()).optional(),
       body: z.string().optional(),
       spec_id: z.string().optional(),
+      effort: IssueEffortSchema.optional(),
+      depends_on: z.array(z.string()).optional(),
     },
   },
   async ({ repositoryRoot, ...input }) => {
@@ -155,6 +158,8 @@ server.registerTool(
       related_files: z.array(z.string()).optional(),
       body: z.string().optional(),
       spec_id: z.string().optional(),
+      effort: IssueEffortSchema.optional(),
+      depends_on: z.array(z.string()).optional(),
     },
   },
   async ({ repositoryRoot, issueId, ...patch }) => {

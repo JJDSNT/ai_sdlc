@@ -14,6 +14,8 @@ export const IssueStatusSchema = z.enum([
 
 export const IssuePrioritySchema = z.enum(["low", "medium", "high", "critical"]);
 
+export const IssueEffortSchema = z.enum(["xs", "s", "m", "l", "xl"]);
+
 export const IssueTypeSchema = z.enum([
   "feature",
   "bug",
@@ -26,6 +28,7 @@ export const IssueTypeSchema = z.enum([
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
 export type IssuePriority = z.infer<typeof IssuePrioritySchema>;
 export type IssueType = z.infer<typeof IssueTypeSchema>;
+export type IssueEffort = z.infer<typeof IssueEffortSchema>;
 
 export const IssueFrontmatterSchema = z.object({
   id: z.string(),
@@ -41,6 +44,10 @@ export const IssueFrontmatterSchema = z.object({
   // Opcional, nunca obrigatório (ISSUE-0008): issues de memória de agente
   // não nascem de uma Spec, só issues de produto têm esse vínculo.
   spec_id: z.string().optional(),
+  // effort/depends_on (ISSUE-0010): usados por agentes para decidir o que
+  // trabalhar a seguir (ver ISSUE-0015) — priority sozinho não basta.
+  effort: IssueEffortSchema.optional(),
+  depends_on: z.array(z.string()).default([]),
 });
 
 export type IssueFrontmatter = z.infer<typeof IssueFrontmatterSchema>;

@@ -5,10 +5,10 @@ import type { ExecutionCard } from "@/features/execution/types";
 
 type Props = Readonly<{
   blockedCards: ExecutionCard[];
-  allCards?: ExecutionCard[];
+  allCards: ExecutionCard[];
 }>;
 
-export function BlockedPanel({ blockedCards, allCards = [] }: Props) {
+export function BlockedPanel({ blockedCards, allCards }: Props) {
   if (blockedCards.length === 0) {
     return (
       <Panel>
@@ -66,7 +66,7 @@ export function BlockedPanel({ blockedCards, allCards = [] }: Props) {
               >
                 {missing.length > 0
                   ? `Aguardando: ${missing.join(", ")}`
-                  : "Bloqueado"}
+                  : "Bloqueado manualmente"}
               </div>
             </div>
           );

@@ -110,6 +110,9 @@ tags:
 related_files:
   -
 spec_id:
+effort:
+depends_on:
+  -
 ---
 
 # Resumo

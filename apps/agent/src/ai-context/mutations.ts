@@ -3,12 +3,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
-import { readIssue } from "./issues.js";
+import { listIssues, readIssue } from "./issues.js";
 import { AiContextMutationError, nextSequentialId, todayIso } from "./shared.js";
 import { ISSUE_TEMPLATE } from "./templates.js";
 import {
   IssueFrontmatterSchema,
   type Issue,
+  type IssueEffort,
   type IssueFrontmatter,
   type IssuePriority,
   type IssueStatus,
@@ -51,10 +52,60 @@ function frontmatterToRecord(fm: IssueFrontmatter) {
     updated_at: fm.updated_at,
     tags: fm.tags,
     related_files: fm.related_files,
-    // spec_id é opcional (ISSUE-0008) — omitido inteiramente quando ausente,
-    // nunca gravado como a string literal "undefined".
+    depends_on: fm.depends_on,
+    // spec_id/effort são opcionais (ISSUE-0008/ISSUE-0010) — omitidos
+    // inteiramente quando ausentes, nunca gravados como a string literal
+    // "undefined".
     ...(fm.spec_id ? { spec_id: fm.spec_id } : {}),
+    ...(fm.effort ? { effort: fm.effort } : {}),
   };
+}
+
+// Detecta dependência circular antes de gravar depends_on: se algum id em
+// `dependsOn` consegue alcançar `issueId` percorrendo a cadeia de
+// depends_on das issues existentes, gravar criaria um ciclo (ISSUE-0010 —
+// necessário para a rotina de priorização de ISSUE-0015 poder confiar que o
+// grafo é um DAG).
+async function assertNoDependencyCycle(
+  repositoryRoot: string,
+  issueId: string,
+  dependsOn: string[]
+): Promise<void> {
+  if (dependsOn.includes(issueId)) {
+    throw new AiContextMutationError(`Issue não pode depender de si mesma: ${issueId}`);
+  }
+
+  if (dependsOn.length === 0) {
+    return;
+  }
+
+  const allIssues = await listIssues(repositoryRoot);
+  const byId = new Map(allIssues.map((issue) => [issue.frontmatter.id, issue]));
+
+  const visited = new Set<string>();
+  const stack = [...dependsOn];
+
+  while (stack.length > 0) {
+    const current = stack.pop() as string;
+
+    if (current === issueId) {
+      throw new AiContextMutationError(
+        `Dependência circular detectada: ${issueId} não pode depender de ${dependsOn.join(", ")} ` +
+          `porque ${current} eventualmente depende de ${issueId} de volta.`
+      );
+    }
+
+    if (visited.has(current)) {
+      continue;
+    }
+
+    visited.add(current);
+    const dependency = byId.get(current);
+
+    if (dependency) {
+      stack.push(...dependency.frontmatter.depends_on);
+    }
+  }
 }
 
 async function writeIssueFile(repositoryRoot: string, issue: Issue) {
@@ -81,6 +132,8 @@ export type CreateIssueInput = {
   related_files?: string[];
   body?: string;
   spec_id?: string;
+  effort?: IssueEffort;
+  depends_on?: string[];
 };
 
 export async function createIssue(
@@ -89,6 +142,9 @@ export async function createIssue(
 ): Promise<Issue> {
   const id = await nextSequentialId(repositoryRoot, "issues", "ISSUE");
   const today = todayIso();
+  const dependsOn = input.depends_on ?? [];
+
+  await assertNoDependencyCycle(repositoryRoot, id, dependsOn);
 
   const frontmatter = IssueFrontmatterSchema.parse({
     id,
@@ -102,6 +158,8 @@ export async function createIssue(
     tags: input.tags ?? [],
     related_files: input.related_files ?? [],
     spec_id: input.spec_id,
+    effort: input.effort,
+    depends_on: dependsOn,
   });
 
   const issue: Issue = {
@@ -119,7 +177,15 @@ export async function createIssue(
 export type UpdateIssuePatch = Partial<
   Pick<
     IssueFrontmatter,
-    "title" | "priority" | "type" | "owner" | "tags" | "related_files" | "spec_id"
+    | "title"
+    | "priority"
+    | "type"
+    | "owner"
+    | "tags"
+    | "related_files"
+    | "spec_id"
+    | "effort"
+    | "depends_on"
   >
 > & { body?: string };
 
@@ -130,6 +196,10 @@ export async function updateIssue(
 ): Promise<Issue> {
   const current = await requireIssue(repositoryRoot, issueId);
   const { body: bodyPatch, ...framePatch } = patch;
+
+  if (framePatch.depends_on) {
+    await assertNoDependencyCycle(repositoryRoot, issueId, framePatch.depends_on);
+  }
 
   const frontmatter = IssueFrontmatterSchema.parse({
     ...current.frontmatter,

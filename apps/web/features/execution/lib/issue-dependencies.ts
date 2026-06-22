@@ -2,6 +2,8 @@
 
 import type { ExecutionCard } from "@/features/execution/types";
 
+const SATISFIED_STATUSES: ExecutionCard["status"][] = ["done"];
+
 export function getCardMap(cards: ExecutionCard[] = []) {
   return new Map(cards.map((card) => [card.id, card]));
 }
@@ -14,11 +16,14 @@ export function getMissingDependencies(
 
   return (card.dependsOn ?? []).filter((dependencyId) => {
     const dependency = cardMap.get(dependencyId);
-    return !dependency || dependency.status !== "done";
+    return !dependency || !SATISFIED_STATUSES.includes(dependency.status);
   });
 }
 
-export function isCardBlocked(
+// Bloqueado por dependência (depends_on com pendência) é distinto de
+// status === "blocked" (bloqueio manual/explícito) — ver execution/page.tsx,
+// que combina os dois para a lista "Bloqueios" da sidebar.
+export function isBlockedByDependency(
   card: ExecutionCard,
   cards: ExecutionCard[] = [],
 ) {

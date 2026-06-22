@@ -6,6 +6,7 @@ import { z } from "zod";
 import {
   AiContextAccessError,
   AiContextMutationError,
+  IssueEffortSchema,
   IssuePrioritySchema,
   IssueStatusSchema,
   IssueTypeSchema,
@@ -44,6 +45,8 @@ const createIssueBody = z.object({
   related_files: z.array(z.string()).optional(),
   body: z.string().optional(),
   spec_id: z.string().optional(),
+  effort: IssueEffortSchema.optional(),
+  depends_on: z.array(z.string()).optional(),
 });
 
 const updateIssueBody = z.object({
@@ -55,6 +58,8 @@ const updateIssueBody = z.object({
   related_files: z.array(z.string()).optional(),
   body: z.string().optional(),
   spec_id: z.string().optional(),
+  effort: IssueEffortSchema.optional(),
+  depends_on: z.array(z.string()).optional(),
 });
 
 const appendLogBody = z.object({ entry: z.string() });

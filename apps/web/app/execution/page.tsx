@@ -7,83 +7,37 @@ import { BoardColumn } from "@/features/execution/components/board-column";
 import { ExecutionIssueCard } from "@/features/execution/components/issue-card";
 import { Metric } from "@/features/execution/components/metric";
 import { SideCard } from "@/features/execution/components/side-card";
-import { isCardBlocked } from "@/features/execution/lib/issue-dependencies";
-import type { ExecutionCard } from "@/features/execution/types";
-
-const cards: ExecutionCard[] = [
-  {
-    id: "ISSUE-101",
-    title: "Definir fluxo de autenticação social",
-    description:
-      "Consolidar fluxo principal de entrada e vínculo de identidade.",
-    status: "done",
-    priority: "critical",
-    effort: "m",
-  },
-  {
-    id: "ISSUE-102",
-    title: "Formalizar regras de sessão",
-    description: "Definir expiração, renovação e logout.",
-    status: "doing",
-    priority: "high",
-    effort: "s",
-    dependsOn: ["ISSUE-101"],
-  },
-  {
-    id: "ISSUE-103",
-    title: "Resolver colisão entre contas",
-    description: "Fechar decisão sobre identidade única por email.",
-    status: "ready",
-    priority: "high",
-    effort: "l",
-    dependsOn: ["ISSUE-102"],
-  },
-  {
-    id: "ISSUE-104",
-    title: "Preparar critérios de aceite",
-    description: "Transformar blocos da spec em critérios verificáveis.",
-    status: "backlog",
-    priority: "medium",
-    effort: "s",
-  },
-  {
-    id: "ISSUE-105",
-    title: "Validar fallback por email e senha",
-    description: "Executar testes antes de mover a issue para done.",
-    status: "test",
-    priority: "medium",
-    effort: "m",
-    dependsOn: ["ISSUE-102"],
-  },
-  {
-    id: "ISSUE-106",
-    title: "Definir onboarding inicial",
-    description: "Fechar experiência inicial de entrada no sistema.",
-    status: "done",
-    priority: "medium",
-    effort: "m",
-  },
-];
+import { useIssues } from "@/features/execution/hooks/use-issues";
+import { isBlockedByDependency } from "@/features/execution/lib/issue-dependencies";
 
 export default function ExecutionPage() {
+  const { cards, loading, error, actionError, moveStatus } = useIssues();
+
   const totalIssues = cards.length;
   const doneIssues = cards.filter((card) => card.status === "done").length;
   const doingIssues = cards.filter((card) => card.status === "doing").length;
-  const testIssues = cards.filter((card) => card.status === "test").length;
-  const blockedIssues = cards.filter((card) => isCardBlocked(card, cards)).length;
   const highPriorityIssues = cards.filter(
     (card) => card.priority === "high" || card.priority === "critical",
   ).length;
 
+  // Bloqueado = status manual "blocked" OU depends_on com pendência — duas
+  // razões distintas para o mesmo conceito de produto (ver issue-dependencies.ts).
+  const blockedCards = cards.filter(
+    (card) => card.status === "blocked" || isBlockedByDependency(card, cards),
+  );
+  const blockedIssues = blockedCards.length;
+
   const sprintProgress =
     totalIssues === 0 ? 0 : Math.round((doneIssues / totalIssues) * 100);
 
+  // Issues com status "blocked" saem do fluxo normal de colunas — só
+  // aparecem na sidebar de Bloqueios. Issues com dependência pendente mas
+  // status normal continuam na sua coluna (com indicação visual de bloqueio).
   const backlogCards = cards.filter((card) => card.status === "backlog");
   const readyCards = cards.filter((card) => card.status === "ready");
   const doingCards = cards.filter((card) => card.status === "doing");
-  const testCards = cards.filter((card) => card.status === "test");
+  const reviewCards = cards.filter((card) => card.status === "review");
   const doneCards = cards.filter((card) => card.status === "done");
-  const blockedCards = cards.filter((card) => isCardBlocked(card, cards));
 
   return (
     <main
@@ -173,7 +127,6 @@ export default function ExecutionPage() {
               <Metric label="Sprint" value="ativa" />
               <Metric label="% feito" value={`${sprintProgress}%`} />
               <Metric label="WIP" value={String(doingIssues)} />
-              <Metric label="Em teste" value={String(testIssues)} />
               <Metric label="Alta prioridade" value={String(highPriorityIssues)} />
               <Metric label="Bloqueios" value={String(blockedIssues)} danger />
             </div>
@@ -244,31 +197,31 @@ export default function ExecutionPage() {
         >
           <BoardColumn title="Backlog" count={backlogCards.length}>
             {backlogCards.map((card) => (
-              <ExecutionIssueCard key={card.id} card={card} allCards={cards} />
+              <ExecutionIssueCard key={card.id} card={card} allCards={cards} onMoveStatus={moveStatus} />
             ))}
           </BoardColumn>
 
           <BoardColumn title="Ready" count={readyCards.length}>
             {readyCards.map((card) => (
-              <ExecutionIssueCard key={card.id} card={card} allCards={cards} />
+              <ExecutionIssueCard key={card.id} card={card} allCards={cards} onMoveStatus={moveStatus} />
             ))}
           </BoardColumn>
 
           <BoardColumn title="Doing" count={doingCards.length}>
             {doingCards.map((card) => (
-              <ExecutionIssueCard key={card.id} card={card} allCards={cards} />
+              <ExecutionIssueCard key={card.id} card={card} allCards={cards} onMoveStatus={moveStatus} />
             ))}
           </BoardColumn>
 
-          <BoardColumn title="Test" count={testCards.length}>
-            {testCards.map((card) => (
-              <ExecutionIssueCard key={card.id} card={card} allCards={cards} />
+          <BoardColumn title="Review" count={reviewCards.length}>
+            {reviewCards.map((card) => (
+              <ExecutionIssueCard key={card.id} card={card} allCards={cards} onMoveStatus={moveStatus} />
             ))}
           </BoardColumn>
 
           <BoardColumn title="Done" count={doneCards.length}>
             {doneCards.map((card) => (
-              <ExecutionIssueCard key={card.id} card={card} allCards={cards} />
+              <ExecutionIssueCard key={card.id} card={card} allCards={cards} onMoveStatus={moveStatus} />
             ))}
           </BoardColumn>
         </div>
@@ -280,6 +233,16 @@ export default function ExecutionPage() {
             alignContent: "start",
           }}
         >
+          {loading ? <SideCard title="Carregando" description="Buscando issues reais do AI_context…" /> : null}
+
+          {error ? (
+            <SideCard title="Erro ao carregar issues" description={error} />
+          ) : null}
+
+          {actionError ? (
+            <SideCard title="Erro ao mover status" description={actionError} />
+          ) : null}
+
           <SideCard
             title="Assistência contextual"
             description="Aqui depois entra o copiloto sugerindo prioridades, detectando dependências e propondo próximas ações."
@@ -287,10 +250,10 @@ export default function ExecutionPage() {
 
           <SideCard
             title="Resumo da sprint"
-            description={`A sprint está com ${sprintProgress}% concluído, ${doingIssues} issue(s) em andamento, ${testIssues} em teste, ${highPriorityIssues} de alta prioridade e ${blockedIssues} bloqueio(s) por dependência.`}
+            description={`A sprint está com ${sprintProgress}% concluído, ${doingIssues} issue(s) em andamento, ${highPriorityIssues} de alta prioridade e ${blockedIssues} bloqueio(s).`}
           />
 
-          <BlockedPanel blockedCards={blockedCards} />
+          <BlockedPanel blockedCards={blockedCards} allCards={cards} />
         </aside>
       </section>
     </main>
