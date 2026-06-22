@@ -16,7 +16,7 @@ import {
   searchIssuesByTag,
   updateIssue,
 } from "../index.js";
-import { resolveSafeRepositoryRoot } from "./security.js";
+import { resolveSafeRepositoryRoot } from "../security.js";
 
 const repositoryRootInput = z
   .string()

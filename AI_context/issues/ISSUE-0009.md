@@ -1,12 +1,12 @@
 ---
 id: ISSUE-0009
 title: API REST no apps/agent para Issues e Specs (consumo pelo apps/web)
-status: backlog
+status: review
 priority: high
 type: feature
 owner: agent
 created_at: 2026-06-21
-updated_at: 2026-06-21
+updated_at: 2026-06-22
 tags:
   - ai-context
   - api
@@ -55,36 +55,76 @@ E o equivalente para `/ai-context/specs/*` depois que `ISSUE-0007` existir.
 
 # O que foi feito
 
-Nada ainda — issue em `backlog`.
+- Novo `apps/agent/src/routes/ai-context.ts`, registrado em `server.ts`
+  (sem prefixo extra, mesmo padrão de `tasksRoutes`), expondo:
+  - Issues: `GET /ai-context/issues` (filtros `status`/`priority`/`tag`/
+    `spec_id`), `GET /ai-context/issues/:id`, `POST /ai-context/issues`,
+    `PATCH /ai-context/issues/:id`, `POST /ai-context/issues/:id/log`,
+    `POST /ai-context/issues/:id/status`,
+    `POST /ai-context/issues/:id/consolidate`.
+  - Specs: `GET /ai-context/specs` (filtro `status`),
+    `GET /ai-context/specs/:id`, `POST /ai-context/specs`,
+    `PATCH /ai-context/specs/:id`, `POST /ai-context/specs/:id/status`.
+  - `repositoryRoot` sempre via query string, explícito, nunca implícito —
+    mesmo contrato do resto do `apps/agent` e do servidor MCP.
+- Validação de entrada com `zod`, reaproveitando os schemas já existentes
+  em `types.ts` (`IssuePrioritySchema`, `IssueStatusSchema`, etc.) em vez
+  de duplicar enums.
+- `mcp/security.ts` (`resolveSafeRepositoryRoot`/`McpRepositoryAccessError`)
+  promovido para `ai-context/security.ts`
+  (`resolveSafeRepositoryRoot`/`AiContextAccessError`) — deixou de ser
+  exclusivo do MCP porque a rota REST precisa do mesmo boundary de
+  `REPO_ALLOWED_ROOT`. `mcp/server.ts` atualizado para importar do novo
+  caminho; nenhuma mudança de comportamento, só remoção da duplicação que
+  essa issue criaria.
+- Mapeamento de erros: `AiContextAccessError` → 403,
+  `AiContextMutationError` → 404 se a mensagem indicar "não encontrada"
+  (caso de `requireIssue`/`requireSpec`), 400 nos demais casos (transição
+  inválida, etc.). Erro de validação de payload (`zod`) → 400 com a lista
+  de `issues` do Zod no corpo.
+- Testado manualmente de ponta a ponta contra a instância real
+  (`/home/jaime/ai_sdlc`) com o servidor rodando: list/read/create/update/
+  append-log/move-status/consolidate de Issues, create/update/move-status
+  de Specs, filtro por `spec_id`, erro 400 em payload inválido, erro 400
+  em transição inválida, erro 404 em id inexistente — todos os artefatos
+  de teste (`ISSUE-0015`, `ISSUE-0016`, `SPEC-0001`, `CONSOLIDATED-0001`)
+  removidos depois.
+- `pnpm --filter agent typecheck`: nenhum erro novo introduzido (mesma
+  lista de erros pré-existentes em `task-runner.ts`/`task-store.ts`,
+  confirmada por comparação via `git stash` em `ISSUE-0008`).
 
 # O que falta fazer
 
-- Validação de entrada com `zod` (já dependência do projeto, usado em
-  `routes/tasks.ts`) — reaproveitar o padrão existente, não inventar outro.
-- Decidir como o frontend descobre o `repositoryRoot` correto (hoje não há
-  conceito de "repositório do projeto atual" persistido em lugar nenhum
-  óbvio — `projects` no schema não tem campo de path). Pode ser que esta
-  issue precise de uma decisão menor: adicionar `path`/`repositoryRoot` à
-  tabela `projects`, ou assumir o próprio `ai_sdlc` como repositório único
-  por enquanto (mais simples, mas limita o produto a só gerenciar issues
-  de si mesmo).
-- Mapear erros de `mutations.ts` (`AiContextMutationError`) para respostas
-  HTTP com status apropriado (400/404), não 500 genérico.
-- Depende de `ISSUE-0007` para a parte de Specs; a parte de Issues pode
-  começar antes, já que `issues.ts`/`mutations.ts` já existem.
+Nada pendente para o escopo desta issue.
 
 # Decisões tomadas
 
-Nenhuma ainda.
+- `repositoryRoot` continua explícito via query string em toda rota —
+  decisão sobre como o frontend obtém esse valor fica para `ISSUE-0010`/
+  `ISSUE-0011`: por ora, a rota é agnóstica à origem do valor (poderia vir
+  hardcoded para o próprio `ai_sdlc`, de um campo novo em `projects`, etc.
+  — essa decisão de produto fica para quando o Kanban/Spec real forem
+  conectados, não nesta issue de infraestrutura de API).
+- `AiContextMutationError` não tem um código de erro estruturado
+  distinguindo "não encontrado" de "validação inválida" — diferenciado na
+  borda HTTP por substring na mensagem (`"não encontrada"`). Aceitável
+  porque é só uma checagem de borda, não lógica de negócio duplicada;
+  revisitar se `mutations.ts`/`specs.ts` ganharem um código de erro
+  estruturado no futuro.
+- Security boundary (`resolveSafeRepositoryRoot`) deixou de ser exclusivo
+  do MCP e moveu para `ai-context/security.ts`, compartilhado entre MCP e
+  REST — evita duplicar a checagem de `REPO_ALLOWED_ROOT` numa segunda
+  cópia.
 
 # Critérios de aceite
 
-- [ ] Rotas de Issues implementadas e testadas contra a instância dogfood
+- [x] Rotas de Issues implementadas e testadas contra a instância dogfood
       real (sem mocks).
-- [ ] Rotas de Specs implementadas depois de `ISSUE-0007`.
-- [ ] Erros de domínio (`AiContextMutationError`) retornam status HTTP
+- [x] Rotas de Specs implementadas depois de `ISSUE-0007`.
+- [x] Erros de domínio (`AiContextMutationError`) retornam status HTTP
       apropriado, com mensagem útil no corpo.
-- [ ] Decisão sobre origem do `repositoryRoot` no contexto web documentada.
+- [x] Decisão sobre origem do `repositoryRoot` no contexto web documentada
+      (diferida para `ISSUE-0010`/`ISSUE-0011` — ver "Decisões tomadas").
 
 # Observações
 
@@ -95,3 +135,6 @@ via import direto ou MCP) ao produto web.
 # Log de execução
 
 - 2026-06-21: issue registrada em backlog.
+- 2026-06-22: movida para ready: dependência ISSUE-0007 satisfeita.
+- 2026-06-22: iniciada implementação.
+- 2026-06-22: implementação concluída: rotas REST de Issues e Specs em routes/ai-context.ts, security boundary promovido para ai-context/security.ts, testado manualmente de ponta a ponta com o servidor real. Movida para review.

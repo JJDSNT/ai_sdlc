@@ -11,6 +11,7 @@ import { registerCopilotInfoRoute } from "./routes/copilot-info.js";
 import { registerCopilotStreamRoute } from "./routes/copilot-stream.js";
 
 import { registerProjectRoutes } from "./routes/projects.js";
+import { aiContextRoutes } from "./routes/ai-context.js";
 
 import { createOpenCodeClient } from "./adapters/opencode.js";
 
@@ -74,6 +75,9 @@ async function registerRoutes() {
   await app.register(registerProjectRoutes, {
     prefix: "/api",
   });
+
+  // AI_context (issues/specs)
+  await app.register(aiContextRoutes);
 
   // copilot
   await app.register(registerCopilotInfoRoute);

@@ -7,3 +7,4 @@ export * from "./scaffold.js";
 export * from "./issues.js";
 export * from "./mutations.js";
 export * from "./specs.js";
+export * from "./security.js";
