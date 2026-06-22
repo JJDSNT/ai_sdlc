@@ -1,22 +1,9 @@
-// apps/web/src/app/definition/page.tsx
+// apps/web/app/definition/page.tsx
 "use client";
 
 import { TopNav } from "@/components/layout/top-nav";
-
-type DraftInsight = {
-  id: string;
-  title: string;
-  description: string;
-  tags?: string[];
-};
-
-type FormalSpecBlock = {
-  id: string;
-  kind: "requirement" | "constraint" | "decision" | "rule" | "acceptance";
-  title: string;
-  description: string;
-  status?: "draft" | "solid" | "needs-review";
-};
+import { useSpec, type SpecStatus } from "@/features/definition/hooks/use-spec";
+import type { SpecSection } from "@/features/definition/lib/spec-sections";
 
 type ValidationSignal = {
   id: string;
@@ -25,104 +12,29 @@ type ValidationSignal = {
   description: string;
 };
 
-const draftInsights: DraftInsight[] = [
-  {
-    id: "d-1",
-    title: "Objetivo do sistema",
-    description:
-      "Reduzir fricção de entrada com login social, sem perder consistência de identidade do usuário entre métodos de autenticação.",
-    tags: ["goal", "onboarding"],
-  },
-  {
-    id: "d-2",
-    title: "Pergunta em aberto",
-    description:
-      "O MVP precisa suportar somente Google ou já deve nascer preparado para múltiplos provedores externos?",
-    tags: ["open-question", "scope"],
-  },
-  {
-    id: "d-3",
-    title: "Restrição percebida",
-    description:
-      "A autenticação deve funcionar bem para experiência web e não bloquear evolução futura para APIs protegidas.",
-    tags: ["constraint", "session"],
-  },
-  {
-    id: "d-4",
-    title: "Risco de entendimento",
-    description:
-      "Se o vínculo entre email social e credenciais locais não for bem definido, pode haver duplicação de conta.",
-    tags: ["risk", "identity"],
-  },
-];
-
-const formalSpecBlocks: FormalSpecBlock[] = [
-  {
-    id: "s-1",
-    kind: "requirement",
-    title: "Autenticação por provedores externos",
-    description:
-      "O sistema deve permitir autenticação por provedores externos configurados, iniciando por Google e mantendo possibilidade de expansão.",
-    status: "solid",
-  },
-  {
-    id: "s-2",
-    kind: "constraint",
-    title: "Fallback por email e senha",
-    description:
-      "A plataforma deve manter autenticação local como alternativa ao login social, garantindo cobertura de acesso em cenários de indisponibilidade ou escolha do usuário.",
-    status: "solid",
-  },
-  {
-    id: "s-3",
-    kind: "decision",
-    title: "Identidade única por email consolidado",
-    description:
-      "Quando houver correspondência de email entre métodos de autenticação, a identidade do usuário deve convergir para uma única conta.",
-    status: "needs-review",
-  },
-  {
-    id: "s-4",
-    kind: "acceptance",
-    title: "Critério de aceite inicial",
-    description:
-      "Usuário consegue autenticar com Google, manter sessão ativa e recuperar acesso via email/senha sem criar contas duplicadas.",
-    status: "draft",
-  },
-];
-
+// validationSignals continua mock: calcular sinais de verdade a partir do
+// conteúdo da Spec é trabalho de IA (ISSUE-0013), fora do escopo de
+// ISSUE-0011 (que só conecta leitura/escrita real da Spec).
 const validationSignals: ValidationSignal[] = [
   {
     id: "v-1",
     tone: "warning",
-    title: "Escopo de provedores ainda ambíguo",
+    title: "Escopo ainda em aberto",
     description:
-      "A conversa já indica login social, mas ainda não define claramente quantos provedores entram no MVP.",
-  },
-  {
-    id: "v-2",
-    tone: "warning",
-    title: "Gestão de sessão ainda parcial",
-    description:
-      "A spec menciona sessão, mas ainda não formaliza expiração, renovação ou logout.",
-  },
-  {
-    id: "v-3",
-    tone: "error",
-    title: "Fluxo de conflito de identidade precisa ser fechado",
-    description:
-      "Ainda falta detalhar como o sistema trata colisão entre login social e credenciais locais com o mesmo email.",
+      "Revise as seções abaixo e confirme se já há requisitos suficientes para avançar.",
   },
   {
     id: "v-4",
     tone: "success",
     title: "Base suficiente para formalização inicial",
     description:
-      "Já existe entendimento suficiente para consolidar requirements, constraints e decisões iniciais.",
+      "Já existe estrutura suficiente para consolidar requirements, constraints e decisões iniciais.",
   },
 ];
 
 export default function DefinitionPage() {
+  const spec = useSpec();
+
   return (
     <main
       style={{
@@ -134,13 +46,31 @@ export default function DefinitionPage() {
       }}
     >
       <TopNav />
-      <ContextBar />
-      <Workspace />
+      <ContextBar
+        title={spec.title}
+        status={spec.status}
+        hasSpec={spec.specId !== null}
+        saving={spec.saving}
+        onValidate={() => spec.moveStatus("validated")}
+      />
+      <Workspace spec={spec} />
     </main>
   );
 }
 
-function ContextBar() {
+function ContextBar({
+  title,
+  status,
+  hasSpec,
+  saving,
+  onValidate,
+}: Readonly<{
+  title: string;
+  status: SpecStatus;
+  hasSpec: boolean;
+  saving: boolean;
+  onValidate: () => void;
+}>) {
   return (
     <section
       style={{
@@ -155,8 +85,7 @@ function ContextBar() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <ContextPill label="Projeto" value="AI SDLC Platform" />
-        <ContextPill label="Spec" value="Authentication System" />
-        <ContextPill label="Versão" value="Draft v0.1" />
+        <ContextPill label="Spec" value={hasSpec ? title || "(sem título)" : "Nenhuma ainda"} />
 
         <a
           href="https://github.com/github/spec-kit/tree/main?tab=readme-ov-file"
@@ -174,15 +103,15 @@ function ContextBar() {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <StatusBadge label="Draft" tone="warning" />
-        <GhostAction label="Validar spec" />
-        <PrimaryAction label="Formalizar entendimento" />
+        {hasSpec ? <StatusBadge label={formatStatus(status)} tone={statusTone(status)} /> : null}
+        <GhostAction label="Validar spec" disabled={!hasSpec || status !== "draft" || saving} onClick={onValidate} />
+        <PrimaryAction label="Formalizar entendimento" disabled title="Em breve (ISSUE-0013) — depende de chat real (ISSUE-0012)" />
       </div>
     </section>
   );
 }
 
-function Workspace() {
+function Workspace({ spec }: Readonly<{ spec: ReturnType<typeof useSpec> }>) {
   return (
     <section
       style={{
@@ -204,13 +133,16 @@ function Workspace() {
         }}
       >
         <UnderstandingDraftPanel />
-        <FormalSpecPanel />
+        <FormalSpecPanel spec={spec} />
         <ValidationPanel />
       </div>
     </section>
   );
 }
 
+// ConversationSection é mock estático de propósito — ativar o chat real
+// aqui é ISSUE-0012, uma integração de backend diferente (Task/chat, não
+// Spec). Inalterado nesta issue.
 function ConversationSection() {
   return (
     <section
@@ -271,25 +203,8 @@ function ConversationSection() {
         }}
       >
         <Message role="assistant">
-          Vamos começar pelo entendimento do problema. Qual experiência você quer
-          habilitar e quais limites esse sistema precisa respeitar?
-        </Message>
-
-        <Message role="user">
-          Quero um sistema de autenticação que reduza fricção de entrada, permita
-          login social e não complique a gestão de conta quando o usuário voltar
-          por outro método.
-        </Message>
-
-        <Message role="assistant">
-          Ótimo. Então temos pelo menos quatro frentes para explorar: objetivo de
-          onboarding, provedores iniciais, fallback local e regra de identidade
-          única entre métodos de autenticação.
-        </Message>
-
-        <Message role="assistant">
-          Também parece existir uma preocupação implícita com sessão, recuperação
-          de acesso e conflitos entre email social e email manual.
+          Chat real ainda não conectado nesta página (ver ISSUE-0012) — esta
+          seção continua ilustrativa.
         </Message>
       </div>
 
@@ -303,7 +218,8 @@ function ConversationSection() {
         }}
       >
         <textarea
-          placeholder="Descreva o problema, objetivo, restrição ou cenário que a IA deve entender..."
+          disabled
+          placeholder="Chat real ainda não conectado (ISSUE-0012)..."
           style={{
             width: "100%",
             minHeight: 78,
@@ -314,6 +230,8 @@ function ConversationSection() {
             fontSize: 14,
             lineHeight: 1.55,
             outline: "none",
+            background: "#f8fafc",
+            color: "#94a3b8",
           }}
         />
 
@@ -325,36 +243,83 @@ function ConversationSection() {
             <SmallHint label="Hipótese" />
           </div>
 
-          <PrimaryAction label="Enviar" />
+          <PrimaryAction label="Enviar" disabled />
         </div>
       </div>
     </section>
   );
 }
 
+// draftInsights deixou de ser mock hardcoded. Decisão (ISSUE-0011): este
+// painel é rascunho client-side efêmero, de propósito — não persistido no
+// backend. "Refinar com IA"/"Mover para spec" automático dependem de
+// chat real (ISSUE-0012) e transformação assistida (ISSUE-0013); até lá
+// ficam desabilitados em vez de simular um comportamento que não existe.
 function UnderstandingDraftPanel() {
   return (
     <Panel
       eyebrow="Understanding Draft"
       title="Material em busca de entendimento"
-      subtitle="Aqui ficam hipóteses, intenções, restrições percebidas e pontos ainda não consolidados."
+      subtitle="Rascunho local (não persistido) — vire requirement/rule/decision direto na Formal Spec ao lado."
     >
-      {draftInsights.map((item) => (
-        <DraftInsightCard key={item.id} item={item} />
-      ))}
+      <div
+        style={{
+          padding: 14,
+          borderRadius: 16,
+          border: "1px dashed #cbd5e1",
+          color: "#64748b",
+          fontSize: 13,
+          lineHeight: 1.6,
+        }}
+      >
+        Sem rascunhos ainda. Extração automática a partir de uma conversa real
+        depende de ISSUE-0012 (chat) + ISSUE-0013 (transformação assistida).
+      </div>
     </Panel>
   );
 }
 
-function FormalSpecPanel() {
+function FormalSpecPanel({ spec }: Readonly<{ spec: ReturnType<typeof useSpec> }>) {
+  if (spec.loading) {
+    return (
+      <Panel
+        eyebrow="Formal Spec"
+        title="Estrutura operacional da spec"
+        subtitle="Carregando…"
+      >
+        <div />
+      </Panel>
+    );
+  }
+
+  if (spec.specId === null) {
+    return (
+      <Panel
+        eyebrow="Formal Spec"
+        title="Estrutura operacional da spec"
+        subtitle="Nenhuma spec ainda neste repositório."
+      >
+        <PrimaryAction label="Criar spec inicial" onClick={() => void spec.createInitialSpec()} disabled={spec.saving} />
+        {spec.error ? <ErrorText>{spec.error}</ErrorText> : null}
+      </Panel>
+    );
+  }
+
   return (
     <Panel
       eyebrow="Formal Spec"
       title="Estrutura operacional da spec"
-      subtitle="Aqui entra o que já está claro o suficiente para virar requirement, constraint, decision, rule ou acceptance criteria."
+      subtitle="Seções reais da Spec — editar e salvar persiste no arquivo."
+      action={<GhostAction label={spec.saving ? "Salvando…" : "Salvar"} small onClick={() => void spec.saveSections()} disabled={spec.saving} />}
     >
-      {formalSpecBlocks.map((block) => (
-        <FormalSpecCard key={block.id} block={block} />
+      {spec.error ? <ErrorText>{spec.error}</ErrorText> : null}
+
+      {spec.sections.map((section) => (
+        <SpecSectionCard
+          key={section.heading}
+          section={section}
+          onChange={(content) => spec.updateSectionContent(section.heading, content)}
+        />
       ))}
     </Panel>
   );
@@ -398,13 +363,10 @@ function ValidationPanel() {
           Feedback contínuo
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
-          A spec ainda está em construção, mas já existem sinais suficientes para
-          indicar prontidão parcial e pontos que precisam ser fechados antes de
-          avançar.
+          Sinais ilustrativos por enquanto — cálculo real a partir do conteúdo
+          da Spec é ISSUE-0013.
         </div>
       </div>
-
-      <ValidationSummaryCard />
 
       {validationSignals.map((signal) => (
         <ValidationSignalCard key={signal.id} signal={signal} />
@@ -413,10 +375,12 @@ function ValidationPanel() {
   );
 }
 
-function DraftInsightCard({
-  item,
+function SpecSectionCard({
+  section,
+  onChange,
 }: Readonly<{
-  item: DraftInsight;
+  section: SpecSection;
+  onChange: (content: string) => void;
 }>) {
   return (
     <div
@@ -429,88 +393,24 @@ function DraftInsightCard({
         background: "#ffffff",
       }}
     >
-      <div style={{ display: "grid", gap: 6 }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-          {item.title}
-        </div>
-        <div style={{ fontSize: 13, lineHeight: 1.65, color: "#475569" }}>
-          {item.description}
-        </div>
-      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#4338ca" }}>{section.heading}</div>
 
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {item.tags?.map((tag) => (
-          <Tag key={tag} label={tag} />
-        ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <GhostAction label="Refinar com IA" small />
-        <GhostAction label="Mover para spec" small />
-      </div>
-    </div>
-  );
-}
-
-function FormalSpecCard({
-  block,
-}: Readonly<{
-  block: FormalSpecBlock;
-}>) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gap: 10,
-        padding: 14,
-        borderRadius: 16,
-        border: "1px solid #e2e8f0",
-        background: "#ffffff",
-      }}
-    >
-      <div style={{ display: "grid", gap: 6 }}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <KindBadge kind={block.kind} />
-          {block.status ? <SpecStatusBadge status={block.status} /> : null}
-        </div>
-
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-          {block.title}
-        </div>
-      </div>
-
-      <div style={{ fontSize: 13, lineHeight: 1.65, color: "#475569" }}>
-        {block.description}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <GhostAction label="Melhorar redação" small />
-        <GhostAction label="Expandir" small />
-        <GhostAction label="Validar bloco" small />
-      </div>
-    </div>
-  );
-}
-
-function ValidationSummaryCard() {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gap: 10,
-        padding: 16,
-        borderRadius: 18,
-        border: "1px solid #e2e8f0",
-        background: "#ffffff",
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
-        Readiness
-      </div>
-
-      <ValidationMetric label="Entendimento" value="alto" tone="success" />
-      <ValidationMetric label="Formalização" value="média" tone="warning" />
-      <ValidationMetric label="Pronta para gerar issues" value="parcial" tone="warning" />
+      <textarea
+        value={section.content}
+        onChange={(event) => onChange(event.target.value)}
+        style={{
+          width: "100%",
+          minHeight: 70,
+          borderRadius: 10,
+          border: "1px solid #e2e8f0",
+          padding: 10,
+          resize: "vertical",
+          fontSize: 13,
+          lineHeight: 1.6,
+          outline: "none",
+          fontFamily: "inherit",
+        }}
+      />
     </div>
   );
 }
@@ -544,7 +444,24 @@ function ValidationSignalCard({
       <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
         {signal.description}
       </div>
-      <GhostAction label="Ir para ponto" small />
+    </div>
+  );
+}
+
+function ErrorText({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <div
+      style={{
+        padding: 10,
+        borderRadius: 10,
+        border: "1px solid #fecaca",
+        background: "#fef2f2",
+        color: "#991b1b",
+        fontSize: 12,
+        fontWeight: 700,
+      }}
+    >
+      {children}
     </div>
   );
 }
@@ -553,11 +470,13 @@ function Panel({
   eyebrow,
   title,
   subtitle,
+  action,
   children,
 }: Readonly<{
   eyebrow: string;
   title: string;
   subtitle: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }>) {
   return (
@@ -575,24 +494,28 @@ function Panel({
         boxShadow: "0 18px 40px rgba(15,23,42,0.04)",
       }}
     >
-      <div style={{ display: "grid", gap: 6 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 900,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "#64748b",
-          }}
-        >
-          {eyebrow}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+        <div style={{ display: "grid", gap: 6 }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#64748b",
+            }}
+          >
+            {eyebrow}
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
+            {title}
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.65, color: "#475569" }}>
+            {subtitle}
+          </div>
         </div>
-        <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
-          {title}
-        </div>
-        <div style={{ fontSize: 13, lineHeight: 1.65, color: "#475569" }}>
-          {subtitle}
-        </div>
+
+        {action}
       </div>
 
       {children}
@@ -672,6 +595,7 @@ function Chip({
   return (
     <button
       type="button"
+      disabled
       style={{
         border: "1px solid #dbeafe",
         background: "#eff6ff",
@@ -680,7 +604,8 @@ function Chip({
         padding: "6px 10px",
         fontSize: 12,
         fontWeight: 700,
-        cursor: "pointer",
+        cursor: "not-allowed",
+        opacity: 0.7,
       }}
     >
       {label}
@@ -705,81 +630,6 @@ function SmallHint({
       }}
     >
       {label}
-    </span>
-  );
-}
-
-function Tag({
-  label,
-}: Readonly<{
-  label: string;
-}>) {
-  return (
-    <span
-      style={{
-        padding: "4px 8px",
-        borderRadius: 999,
-        background: "#f8fafc",
-        border: "1px solid #e2e8f0",
-        fontSize: 11,
-        fontWeight: 700,
-        color: "#475569",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function KindBadge({
-  kind,
-}: Readonly<{
-  kind: FormalSpecBlock["kind"];
-}>) {
-  return (
-    <span
-      style={{
-        padding: "4px 8px",
-        borderRadius: 999,
-        background: "#eef2ff",
-        border: "1px solid #c7d2fe",
-        fontSize: 11,
-        fontWeight: 800,
-        color: "#4338ca",
-        textTransform: "capitalize",
-      }}
-    >
-      {kind}
-    </span>
-  );
-}
-
-function SpecStatusBadge({
-  status,
-}: Readonly<{
-  status: NonNullable<FormalSpecBlock["status"]>;
-}>) {
-  const palette =
-    status === "solid"
-      ? { fg: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
-      : status === "needs-review"
-        ? { fg: "#92400e", bg: "#fffbeb", border: "#fde68a" }
-        : { fg: "#475569", bg: "#f8fafc", border: "#cbd5e1" };
-
-  return (
-    <span
-      style={{
-        padding: "4px 8px",
-        borderRadius: 999,
-        background: palette.bg,
-        border: `1px solid ${palette.border}`,
-        fontSize: 11,
-        fontWeight: 800,
-        color: palette.fg,
-        textTransform: "capitalize",
-      }}
-    >
-      {status}
     </span>
   );
 }
@@ -815,70 +665,32 @@ function StatusBadge({
   );
 }
 
-function ValidationMetric({
-  label,
-  value,
-  tone,
-}: Readonly<{
-  label: string;
-  value: string;
-  tone: "success" | "warning" | "error";
-}>) {
-  const palette =
-    tone === "success"
-      ? { fg: "#166534", bg: "#f0fdf4", border: "#bbf7d0" }
-      : tone === "error"
-        ? { fg: "#991b1b", bg: "#fef2f2", border: "#fecaca" }
-        : { fg: "#92400e", bg: "#fffbeb", border: "#fde68a" };
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        padding: "10px 12px",
-        borderRadius: 14,
-        border: `1px solid ${palette.border}`,
-        background: palette.bg,
-      }}
-    >
-      <span style={{ fontSize: 13, color: "#334155", fontWeight: 600 }}>
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          textTransform: "uppercase",
-          color: palette.fg,
-          letterSpacing: "0.06em",
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
 function PrimaryAction({
   label,
+  disabled = false,
+  title,
+  onClick,
 }: Readonly<{
   label: string;
+  disabled?: boolean;
+  title?: string;
+  onClick?: () => void;
 }>) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      title={title}
+      onClick={onClick}
       style={{
         height: 38,
         border: "none",
         borderRadius: 12,
         padding: "0 14px",
-        background: "#2563eb",
+        background: disabled ? "#94a3b8" : "#2563eb",
         color: "#ffffff",
         fontWeight: 800,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       {label}
@@ -889,26 +701,57 @@ function PrimaryAction({
 function GhostAction({
   label,
   small = false,
+  disabled = false,
+  onClick,
 }: Readonly<{
   label: string;
   small?: boolean;
+  disabled?: boolean;
+  onClick?: () => void;
 }>) {
   return (
     <button
       type="button"
+      disabled={disabled}
+      onClick={onClick}
       style={{
         height: small ? 30 : 38,
         borderRadius: small ? 10 : 12,
         border: "1px solid #cbd5e1",
-        background: "#ffffff",
-        color: "#0f172a",
+        background: disabled ? "#f1f5f9" : "#ffffff",
+        color: disabled ? "#94a3b8" : "#0f172a",
         padding: small ? "0 10px" : "0 14px",
         fontSize: small ? 12 : 13,
         fontWeight: 700,
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       {label}
     </button>
   );
+}
+
+function formatStatus(status: SpecStatus) {
+  switch (status) {
+    case "draft":
+      return "Draft";
+    case "validated":
+      return "Validated";
+    case "active":
+      return "Active";
+    case "deprecated":
+      return "Deprecated";
+  }
+}
+
+function statusTone(status: SpecStatus): "warning" | "success" | "error" {
+  switch (status) {
+    case "draft":
+      return "warning";
+    case "validated":
+    case "active":
+      return "success";
+    case "deprecated":
+      return "error";
+  }
 }
