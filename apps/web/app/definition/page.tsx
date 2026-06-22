@@ -2,6 +2,7 @@
 "use client";
 
 import { TopNav } from "@/components/layout/top-nav";
+import { ConversationChat } from "@/features/definition/components/conversation-chat";
 import { useSpec, type SpecStatus } from "@/features/definition/hooks/use-spec";
 import type { SpecSection } from "@/features/definition/lib/spec-sections";
 
@@ -143,6 +144,10 @@ function Workspace({ spec }: Readonly<{ spec: ReturnType<typeof useSpec> }>) {
 // ConversationSection é mock estático de propósito — ativar o chat real
 // aqui é ISSUE-0012, uma integração de backend diferente (Task/chat, não
 // Spec). Inalterado nesta issue.
+// Chat real (ISSUE-0012): CopilotChat conectado via /api/copilotkit ->
+// apps/agent /copilot/stream -> cria uma Task real (kind: "chat"). Não
+// reaproveita CopilotPanel (ver conversation-chat.tsx) — tools de gestão de
+// task não fazem sentido nesta página.
 function ConversationSection() {
   return (
     <section
@@ -152,7 +157,7 @@ function ConversationSection() {
         background: "#ffffff",
         overflow: "hidden",
         display: "grid",
-        gridTemplateRows: "auto 1fr auto",
+        gridTemplateRows: "auto 1fr",
         boxShadow: "0 18px 40px rgba(15,23,42,0.04)",
       }}
     >
@@ -193,58 +198,8 @@ function ConversationSection() {
         </div>
       </div>
 
-      <div
-        style={{
-          padding: 16,
-          overflow: "auto",
-          display: "grid",
-          gap: 12,
-          alignContent: "start",
-        }}
-      >
-        <Message role="assistant">
-          Chat real ainda não conectado nesta página (ver ISSUE-0012) — esta
-          seção continua ilustrativa.
-        </Message>
-      </div>
-
-      <div
-        style={{
-          borderTop: "1px solid #e2e8f0",
-          padding: 12,
-          display: "grid",
-          gap: 8,
-          background: "#ffffff",
-        }}
-      >
-        <textarea
-          disabled
-          placeholder="Chat real ainda não conectado (ISSUE-0012)..."
-          style={{
-            width: "100%",
-            minHeight: 78,
-            borderRadius: 14,
-            border: "1px solid #cbd5e1",
-            padding: 12,
-            resize: "none",
-            fontSize: 14,
-            lineHeight: 1.55,
-            outline: "none",
-            background: "#f8fafc",
-            color: "#94a3b8",
-          }}
-        />
-
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <SmallHint label="Objetivo" />
-            <SmallHint label="Restrição" />
-            <SmallHint label="Risco" />
-            <SmallHint label="Hipótese" />
-          </div>
-
-          <PrimaryAction label="Enviar" disabled />
-        </div>
+      <div style={{ minHeight: 0, overflow: "hidden" }}>
+        <ConversationChat />
       </div>
     </section>
   );
@@ -523,34 +478,6 @@ function Panel({
   );
 }
 
-function Message({
-  role,
-  children,
-}: Readonly<{
-  role: "user" | "assistant";
-  children: React.ReactNode;
-}>) {
-  const isUser = role === "user";
-
-  return (
-    <div
-      style={{
-        maxWidth: "78%",
-        justifySelf: isUser ? "end" : "start",
-        padding: 12,
-        borderRadius: 16,
-        background: isUser ? "#2563eb" : "#f1f5f9",
-        color: isUser ? "#ffffff" : "#0f172a",
-        fontSize: 14,
-        lineHeight: 1.6,
-        boxShadow: isUser ? "0 8px 20px rgba(37,99,235,0.18)" : "none",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 function ContextPill({
   label,
   value,
@@ -610,27 +537,6 @@ function Chip({
     >
       {label}
     </button>
-  );
-}
-
-function SmallHint({
-  label,
-}: Readonly<{
-  label: string;
-}>) {
-  return (
-    <span
-      style={{
-        padding: "6px 10px",
-        borderRadius: 999,
-        border: "1px solid #e2e8f0",
-        background: "#f8fafc",
-        fontSize: 12,
-        color: "#64748b",
-      }}
-    >
-      {label}
-    </span>
   );
 }
 

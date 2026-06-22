@@ -80,6 +80,23 @@ function serializeTask(task: Task) {
 
 // ---------- CORE ----------
 
+// tasks.project_id é NOT NULL no schema (Drizzle), mas nem todo chamador de
+// createTask tem o conceito de "qual projeto" (ex. copilot-stream.ts cria
+// tasks de chat sem nenhuma noção de projeto ainda). Até existir essa
+// noção de verdade na UI, cai no primeiro project existente — mesmo
+// "proj_1" que apps/web/app/page.tsx já lista como único projeto hoje.
+async function resolveDefaultProjectId(): Promise<string> {
+  const project = await db.query.projects.findFirst();
+
+  if (!project) {
+    throw new Error(
+      "Nenhum project encontrado — não é possível criar uma Task sem projectId."
+    );
+  }
+
+  return project.id;
+}
+
 export async function createTask(task: Task) {
   const existing = await getTask(task.id);
 
@@ -87,14 +104,18 @@ export async function createTask(task: Task) {
     throw new Error(`Task already exists: ${task.id}`);
   }
 
-  await db.insert(tasks).values(serializeTask(task));
+  const projectId =
+    (task as Task & { projectId?: string }).projectId ?? (await resolveDefaultProjectId());
+  const taskWithProject = { ...task, projectId } as Task;
+
+  await db.insert(tasks).values(serializeTask(taskWithProject));
 
   await emitAndPersistTaskEvent(task.id, {
     type: "task.created",
-    task,
+    task: taskWithProject,
   });
 
-  return task;
+  return taskWithProject;
 }
 
 export async function getTask(taskId: string) {
