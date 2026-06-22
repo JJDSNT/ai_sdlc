@@ -6,8 +6,10 @@ import {
   README_MAIN,
   README_CONSOLIDATED,
   README_METADATA,
+  README_SPECS,
   ISSUE_TEMPLATE,
   CONSOLIDATED_TEMPLATE,
+  SPEC_TEMPLATE,
 } from "./templates.js";
 
 export type ScaffoldResult = {
@@ -78,6 +80,13 @@ export async function scaffoldAiContext(
     repositoryRoot,
     `${root}/templates/consolidated.template.md`,
     CONSOLIDATED_TEMPLATE
+  );
+  await ensureFile(result, repositoryRoot, `${root}/specs/README.md`, README_SPECS);
+  await ensureFile(
+    result,
+    repositoryRoot,
+    `${root}/templates/spec.template.md`,
+    SPEC_TEMPLATE
   );
 
   return result;

@@ -1,9 +1,10 @@
 //apps/agent/src/ai-context/mutations.ts
 
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseFrontmatter, stringifyFrontmatter } from "./frontmatter.js";
 import { readIssue } from "./issues.js";
+import { AiContextMutationError, nextSequentialId, todayIso } from "./shared.js";
 import { ISSUE_TEMPLATE } from "./templates.js";
 import {
   IssueFrontmatterSchema,
@@ -14,12 +15,7 @@ import {
   type IssueType,
 } from "./types.js";
 
-export class AiContextMutationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AiContextMutationError";
-  }
-}
+export { AiContextMutationError };
 
 // Transições válidas de status via moveIssueStatus(). "consolidated" não
 // aparece como destino aqui de propósito: só consolidateIssue() pode chegar
@@ -35,44 +31,12 @@ const ALLOWED_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
   consolidated: [],
 };
 
-const ID_PATTERN = /^(ISSUE|CONSOLIDATED)-(\d{4,})$/;
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function issueFilePath(repositoryRoot: string, issueId: string) {
   return path.join(repositoryRoot, "AI_context", "issues", `${issueId}.md`);
 }
 
 function consolidatedFilePath(repositoryRoot: string, consolidatedId: string) {
   return path.join(repositoryRoot, "AI_context", "consolidated", `${consolidatedId}.md`);
-}
-
-async function nextSequentialId(
-  repositoryRoot: string,
-  dirName: "issues" | "consolidated",
-  prefix: "ISSUE" | "CONSOLIDATED"
-) {
-  const dirPath = path.join(repositoryRoot, "AI_context", dirName);
-  let entries: string[] = [];
-
-  try {
-    entries = await readdir(dirPath);
-  } catch {
-    entries = [];
-  }
-
-  let max = 0;
-
-  for (const entry of entries) {
-    const match = entry.replace(/\.md$/, "").match(ID_PATTERN);
-    if (match && match[1] === prefix) {
-      max = Math.max(max, Number(match[2]));
-    }
-  }
-
-  return `${prefix}-${String(max + 1).padStart(4, "0")}`;
 }
 
 function frontmatterToRecord(fm: IssueFrontmatter) {

@@ -34,9 +34,10 @@ Documentation Update
 ## Estrutura
 
 - \`issues/\` — trabalho ativo. Documentos vivos, modificáveis pelos agentes.
+- \`specs/\` — especificações formais. Ver \`specs/README.md\`.
 - \`consolidated/\` — conhecimento estabilizado. Ver \`consolidated/README.md\`
   para a regra de promoção.
-- \`templates/\` — modelos para novas issues e entradas consolidadas.
+- \`templates/\` — modelos para novas issues, specs e entradas consolidadas.
 - \`metadata/\` — reservado para uma futura view derivada/cacheada (não
   populado nesta fase; leitura é feita diretamente do frontmatter dos
   arquivos markdown).
@@ -76,6 +77,23 @@ Reservado para uma futura view derivada/cacheada (ex.: \`status.json\`,
 
 Nesta fase, a leitura é feita diretamente do frontmatter dos arquivos em
 \`AI_context/issues/*.md\` — nenhum arquivo aqui é gerado ou consumido ainda.
+`;
+
+export const README_SPECS = `# AI_context/specs
+
+## Objetivo
+
+Especificações formais — a fonte de definição a partir da qual issues
+podem ser derivadas (\`spec_id\` opcional no frontmatter da issue).
+
+## Status permitidos
+
+\`draft\`, \`validated\`, \`active\`, \`deprecated\`
+
+## Versionamento
+
+Não há tabela de versões: o histórico de uma Spec é o próprio git log do
+arquivo.
 `;
 
 export const ISSUE_TEMPLATE = `---
@@ -124,6 +142,58 @@ Checklist.
 # Observações
 
 Notas adicionais.
+
+# Log de execução
+
+Registro cronológico.
+`;
+
+export const SPEC_TEMPLATE = `---
+id: SPEC-XXXX
+title:
+status: draft
+owner: agent
+created_at:
+updated_at:
+tags:
+  -
+---
+
+# Resumo
+
+Breve descrição da spec.
+
+# Objetivo
+
+Resultado esperado.
+
+# Requisitos
+
+Lista de requisitos.
+
+# Regras de negócio
+
+Regras que o sistema deve seguir.
+
+# Edge cases
+
+Casos extremos a considerar.
+
+# Decisões
+
+Decisões tomadas durante a definição.
+
+# Critérios de aceitação
+
+Checklist.
+
+# Restrições de segurança
+
+Restrições relevantes, se houver.
+
+# Sinais de validação
+
+Lacunas, inconsistências ou pendências identificadas.
 
 # Log de execução
 

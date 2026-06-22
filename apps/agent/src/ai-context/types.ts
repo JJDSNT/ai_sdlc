@@ -47,3 +47,25 @@ export type Issue = {
   body: string;
   filePath: string;
 };
+
+export const SpecStatusSchema = z.enum(["draft", "validated", "active", "deprecated"]);
+
+export type SpecStatus = z.infer<typeof SpecStatusSchema>;
+
+export const SpecFrontmatterSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: SpecStatusSchema,
+  owner: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  tags: z.array(z.string()).default([]),
+});
+
+export type SpecFrontmatter = z.infer<typeof SpecFrontmatterSchema>;
+
+export type Spec = {
+  frontmatter: SpecFrontmatter;
+  body: string;
+  filePath: string;
+};

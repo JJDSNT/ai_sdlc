@@ -6,3 +6,4 @@ export * from "./templates.js";
 export * from "./scaffold.js";
 export * from "./issues.js";
 export * from "./mutations.js";
+export * from "./specs.js";

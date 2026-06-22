@@ -13,6 +13,11 @@ import {
   moveIssueStatus,
   consolidateIssue,
   AiContextMutationError,
+  listSpecs,
+  readSpec,
+  createSpec,
+  updateSpec,
+  moveSpecStatus,
 } from "./index.js";
 
 async function main() {
@@ -90,6 +95,45 @@ async function main() {
   await rm(created.filePath, { force: true });
   await rm(consolidated.consolidatedFilePath, { force: true });
   console.log("smoke test de mutações: ok (artefatos de teste removidos)");
+
+  // Smoke test descartável do módulo de Spec.
+  const allSpecs = await listSpecs(repositoryRoot);
+  console.log(`listSpecs -> ${allSpecs.length} spec(s)`);
+
+  const createdSpec = await createSpec(repositoryRoot, {
+    title: "[verify.script] spec descartável de teste",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+  });
+  console.log("createSpec ->", createdSpec.frontmatter.id);
+
+  const updatedSpec = await updateSpec(repositoryRoot, createdSpec.frontmatter.id, {
+    title: "[verify.script] spec descartável de teste (editada)",
+  });
+  console.assert(
+    updatedSpec.frontmatter.title.includes("editada"),
+    "updateSpec deveria alterar title"
+  );
+
+  await moveSpecStatus(repositoryRoot, createdSpec.frontmatter.id, "validated");
+  await moveSpecStatus(repositoryRoot, createdSpec.frontmatter.id, "active");
+
+  try {
+    await moveSpecStatus(repositoryRoot, createdSpec.frontmatter.id, "validated");
+    console.error("esperava AiContextMutationError ao tentar active → validated direto");
+  } catch (error) {
+    console.assert(
+      error instanceof AiContextMutationError,
+      "transição active → validated deveria ser inválida"
+    );
+  }
+
+  await moveSpecStatus(repositoryRoot, createdSpec.frontmatter.id, "deprecated");
+  const finalSpec = await readSpec(repositoryRoot, createdSpec.frontmatter.id);
+  console.assert(finalSpec?.frontmatter.status === "deprecated", "spec deveria estar deprecated");
+
+  await rm(createdSpec.filePath, { force: true });
+  console.log("smoke test de specs: ok (artefatos de teste removidos)");
 }
 
 main();

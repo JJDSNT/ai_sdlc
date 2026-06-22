@@ -1,19 +1,22 @@
 ---
 id: ISSUE-0007
 title: Módulo de Spec persistida no AI_context (AI_context/specs/)
-status: backlog
+status: review
 priority: high
 type: feature
 owner: agent
 created_at: 2026-06-21
-updated_at: 2026-06-21
+updated_at: 2026-06-22
 tags:
   - ai-context
   - spec
 related_files:
+  - apps/agent/src/ai-context/specs.ts
+  - apps/agent/src/ai-context/shared.ts
   - apps/agent/src/ai-context/types.ts
   - apps/agent/src/ai-context/templates.ts
   - apps/agent/src/ai-context/scaffold.ts
+  - apps/agent/src/ai-context/mutations.ts
 ---
 
 # Resumo
@@ -82,23 +85,40 @@ todas recebendo `repositoryRoot` explícito.
 
 # O que foi feito
 
-Nada ainda — issue em `backlog`.
+- `apps/agent/src/ai-context/specs.ts` criado: `listSpecs`, `readSpec`,
+  `createSpec`, `updateSpec`, `moveSpecStatus` — mesmo shape de
+  `issues.ts`/`mutations.ts`, todas recebendo `repositoryRoot` explícito.
+- `nextSequentialId`/`todayIso`/`AiContextMutationError` extraídos de
+  `mutations.ts` para `shared.ts` (novo), generalizando o tipo de
+  `nextSequentialId` para aceitar qualquer `(dirName, prefix)` — agora com
+  2 consumidores (`mutations.ts` para `ISSUE`/`CONSOLIDATED`, `specs.ts`
+  para `SPEC`), a extração deixou de ser prematura.
+- `SpecStatusSchema`/`SpecFrontmatterSchema`/`Spec` adicionados a `types.ts`.
+- `SPEC_TEMPLATE`/`README_SPECS` adicionados a `templates.ts`; `README_MAIN`
+  atualizado para mencionar `specs/` na "Estrutura".
+- `scaffoldAiContext` agora também cria `AI_context/specs/README.md` e
+  `AI_context/templates/spec.template.md`.
+- Transições de status de Spec, mais simples que as de Issue (sem
+  `consolidated`/`blocked`): `draft → validated → active → deprecated`,
+  com volta de `validated`/`active` para `draft` permitida (revisão).
+- `verify.script.ts` estendido com smoke test descartável de Spec
+  (create/update/transições válidas/transição inválida rejeitada),
+  seguindo o mesmo padrão do smoke test de Issue.
+- Bug real encontrado e corrigido: `listSpecs` tentava parsear
+  `AI_context/specs/README.md` como se fosse uma Spec (mesmo arquivo que o
+  scaffold cria dentro do próprio diretório que é listado) — corrigido
+  excluindo `README.md` explicitamente do scan.
+- Esta própria issue foi movida `backlog → ready → doing → review` via
+  `moveIssueStatus`/`appendIssueLog` reais.
 
 # O que falta fazer
 
-- Decidir se `specs.ts` reaproveita `frontmatter.ts`/`parseFrontmatter`
-  tal como está (deveria — o formato é o mesmo, flat YAML) ou se precisa de
-  ajuste para os blocos tipados de Spec.
-- Decidir id sequencial: reaproveitar a mesma função `nextSequentialId` de
-  `mutations.ts`, generalizada para aceitar `(dirName, prefix)` quaisquer
-  (hoje é só `issues`/`ISSUE` e `consolidated`/`CONSOLIDATED` — extender
-  para `specs`/`SPEC`, não duplicar lógica).
-- `scaffoldAiContext` precisa passar a criar `AI_context/specs/` também,
-  com um README curto explicando o que vai lá (mesmo padrão de
-  `issues/`/`consolidated/`).
-- Depois que este módulo existir, expor `list_specs`/`read_spec`/
-  `create_spec`/`update_spec` no servidor MCP (`ISSUE-0002`) é trabalho
-  futuro natural — não está no escopo desta issue, só registrando a nota.
+- Expor `list_specs`/`read_spec`/`create_spec`/`update_spec` no servidor
+  MCP (`ISSUE-0002`) — trabalho futuro natural, fora do escopo desta issue.
+- Possibilidade registrada (não decidida) de revisitar o template de Spec
+  no futuro para alinhar com o
+  [spec-kit do GitHub](https://github.com/github/spec-kit), a pedido do
+  usuário — não foi usado como referência nesta implementação.
 
 # Decisões tomadas
 
@@ -106,17 +126,21 @@ Nada ainda — issue em `backlog`.
   com o usuário antes desta issue ser registrada (ver `ISSUE-0008`/`ISSUE-0009`
   que dependem disso).
 - Reaproveitar ao máximo o padrão já validado para Issue (frontmatter,
-  scaffold, numeração sequencial) em vez de desenhar algo novo do zero.
+  scaffold, numeração sequencial) em vez de desenhar algo novo do zero —
+  inclusive extraindo o que passou a ser compartilhado para `shared.ts`.
+- Transições de Spec ficam num módulo próprio (`specs.ts`), não em
+  `mutations.ts` — a superfície de Spec é pequena o suficiente (5 funções)
+  para não justificar a mesma separação read/write que Issue tem.
 
 # Critérios de aceite
 
-- [ ] `AI_context/specs/` existe e é criado por `scaffoldAiContext`.
-- [ ] `createSpec`/`readSpec`/`updateSpec`/`listSpecs`/`moveSpecStatus`
+- [x] `AI_context/specs/` existe e é criado por `scaffoldAiContext`.
+- [x] `createSpec`/`readSpec`/`updateSpec`/`listSpecs`/`moveSpecStatus`
       implementados e exportados de `apps/agent/src/ai-context/index.ts`.
-- [ ] Numeração sequencial de `SPEC-XXXX` sem colisão, independente da
+- [x] Numeração sequencial de `SPEC-XXXX` sem colisão, independente da
       numeração de `ISSUE-XXXX`.
-- [ ] Verificado contra a instância dogfood real, sem mocks (estender
-      `verify.script.ts` ou criar um equivalente).
+- [x] Verificado contra a instância dogfood real, sem mocks (`verify.script.ts`
+      estendido).
 
 # Observações
 
@@ -133,3 +157,4 @@ arquiteturais foram tomadas antes de registrar este lote (`ISSUE-0007` a
 - 2026-06-21: issue registrada em backlog, via `createIssue` real
   (dogfooding de `mutations.ts`), como parte do roadmap de unificação do
   lifecycle chat → spec → issue → task.
+- 2026-06-22: módulo apps/agent/src/ai-context/specs.ts implementado (createSpec/updateSpec/moveSpecStatus/listSpecs/readSpec); scaffold estendido para criar AI_context/specs/; verify.script.ts estendido e validado contra a instância dogfood; bug real encontrado e corrigido (listSpecs tentava parsear specs/README.md como spec).
