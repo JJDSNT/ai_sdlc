@@ -38,6 +38,9 @@ export const IssueFrontmatterSchema = z.object({
   updated_at: z.string(),
   tags: z.array(z.string()).default([]),
   related_files: z.array(z.string()).default([]),
+  // Opcional, nunca obrigatório (ISSUE-0008): issues de memória de agente
+  // não nascem de uma Spec, só issues de produto têm esse vínculo.
+  spec_id: z.string().optional(),
 });
 
 export type IssueFrontmatter = z.infer<typeof IssueFrontmatterSchema>;

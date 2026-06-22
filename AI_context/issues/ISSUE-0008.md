@@ -1,12 +1,12 @@
 ---
 id: ISSUE-0008
 title: Vincular Issue a Spec (spec_id opcional no frontmatter)
-status: backlog
+status: review
 priority: medium
 type: feature
 owner: agent
 created_at: 2026-06-21
-updated_at: 2026-06-21
+updated_at: 2026-06-22
 tags:
   - ai-context
   - spec
@@ -42,24 +42,43 @@ passa por uma Spec. Tornar `spec_id` obrigatório quebraria esse uso.
 
 # O que foi feito
 
-Nada ainda — issue em `backlog`.
+- `spec_id: z.string().optional()` adicionado a `IssueFrontmatterSchema`
+  (`types.ts`).
+- `createIssue`/`UpdateIssuePatch` (`mutations.ts`) aceitam `spec_id` no
+  input. `frontmatterToRecord` só grava a chave quando `spec_id` é truthy
+  — nunca persiste a string literal `"undefined"` no markdown.
+- `filterIssuesBySpec(repositoryRoot, specId)` adicionado a `issues.ts`,
+  mesmo padrão de `filterIssuesByStatus`/`filterIssuesByPriority`.
+- `ISSUE_TEMPLATE` (`templates.ts`) ganhou a linha `spec_id:` para
+  descoberta ao criar issues manualmente a partir do template.
+- `mcp/server.ts`: `create_issue` e `update_issue` ganharam
+  `spec_id: z.string().optional()` no `inputSchema`, mantendo o contrato
+  MCP em paridade com `mutations.ts`.
+- `verify.script.ts`: novo smoke test dedicado — cria Spec + Issue já
+  vinculada, relê do disco, aplica uma mutation que não toca em `spec_id`
+  (`appendIssueLog`) e confirma que o vínculo sobrevive, confirma
+  `filterIssuesBySpec`, e testa explicitamente que `updateIssue` com
+  `spec_id: undefined` desvincula. Rodado com sucesso contra a instância
+  real (`/home/jaime/ai_sdlc`), sem regressão nos smoke tests existentes
+  de Issue/Spec.
+- `pnpm --filter agent typecheck`: os erros pré-existentes em
+  `task-runner.ts`/`task-store.ts`/etc. (área legada, não tocada por esta
+  issue) foram confirmados como já presentes antes desta mudança (`git
+  stash` + typecheck reproduz os mesmos erros) — nenhuma regressão
+  introduzida pelo módulo `ai-context`.
 
 # O que falta fazer
 
-- Depende de `ISSUE-0007` (módulo de Spec) existir antes de fazer sentido
-  de verdade, mesmo que o campo em si seja só uma string.
-- Decidir se vale a pena também guardar, no lado da Spec, uma lista de
-  `related_issues` (mão dupla) ou se basta a referência unidirecional
-  Issue → Spec (mais simples, evita manter duas listas sincronizadas).
-  Recomendação: só unidirecional por agora — quem quiser "issues de uma
-  spec" usa `filterIssuesBySpec(repositoryRoot, specId)`, sem precisar de
-  estado duplicado na Spec.
+Nada pendente para o escopo desta issue.
 
 # Decisões tomadas
 
 - `spec_id` é opcional, nunca obrigatório — diverge deliberadamente da
   regra "toda issue pertence a uma spec" dos docs originais, porque essa
   regra valia para um mundo sem Issues de memória de agente.
+- Vínculo unidirecional (Issue → Spec), sem `related_issues` no lado da
+  Spec: evita manter duas listas sincronizadas. Quem quiser "issues de
+  uma spec" usa `filterIssuesBySpec(repositoryRoot, specId)`.
 
 # Fora de escopo
 
@@ -71,11 +90,11 @@ Nada ainda — issue em `backlog`.
 
 # Critérios de aceite
 
-- [ ] `spec_id` opcional no schema, com round-trip testado (criar issue
+- [x] `spec_id` opcional no schema, com round-trip testado (criar issue
       com `spec_id`, ler de volta, confirmar que sobrevive a uma mutation
       subsequente).
-- [ ] `createIssue`/`updateIssue` aceitam o campo.
-- [ ] Alguma forma de listar issues de uma Spec específica.
+- [x] `createIssue`/`updateIssue` aceitam o campo.
+- [x] Alguma forma de listar issues de uma Spec específica.
 
 # Observações
 
@@ -85,3 +104,6 @@ Parte do roadmap de unificação do lifecycle chat → spec → issue → task
 # Log de execução
 
 - 2026-06-21: issue registrada em backlog.
+- 2026-06-22: movida para ready: dependências (ISSUE-0007) satisfeitas.
+- 2026-06-22: iniciada implementação.
+- 2026-06-22: implementação concluída: schema, mutations, filterIssuesBySpec, template, MCP server, smoke test dedicado e regressão completa via verify.script.ts. Movida para review.

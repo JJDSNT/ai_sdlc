@@ -51,6 +51,9 @@ function frontmatterToRecord(fm: IssueFrontmatter) {
     updated_at: fm.updated_at,
     tags: fm.tags,
     related_files: fm.related_files,
+    // spec_id é opcional (ISSUE-0008) — omitido inteiramente quando ausente,
+    // nunca gravado como a string literal "undefined".
+    ...(fm.spec_id ? { spec_id: fm.spec_id } : {}),
   };
 }
 
@@ -77,6 +80,7 @@ export type CreateIssueInput = {
   tags?: string[];
   related_files?: string[];
   body?: string;
+  spec_id?: string;
 };
 
 export async function createIssue(
@@ -97,6 +101,7 @@ export async function createIssue(
     updated_at: today,
     tags: input.tags ?? [],
     related_files: input.related_files ?? [],
+    spec_id: input.spec_id,
   });
 
   const issue: Issue = {
@@ -112,7 +117,10 @@ export async function createIssue(
 }
 
 export type UpdateIssuePatch = Partial<
-  Pick<IssueFrontmatter, "title" | "priority" | "type" | "owner" | "tags" | "related_files">
+  Pick<
+    IssueFrontmatter,
+    "title" | "priority" | "type" | "owner" | "tags" | "related_files" | "spec_id"
+  >
 > & { body?: string };
 
 export async function updateIssue(

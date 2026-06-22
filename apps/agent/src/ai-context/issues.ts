@@ -87,3 +87,11 @@ export async function searchIssuesByTag(
   const issues = await listIssues(repositoryRoot);
   return issues.filter((issue) => issue.frontmatter.tags.includes(tag));
 }
+
+export async function filterIssuesBySpec(
+  repositoryRoot: string,
+  specId: string
+): Promise<Issue[]> {
+  const issues = await listIssues(repositoryRoot);
+  return issues.filter((issue) => issue.frontmatter.spec_id === specId);
+}

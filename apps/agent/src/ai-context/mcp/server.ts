@@ -124,6 +124,7 @@ server.registerTool(
       tags: z.array(z.string()).optional(),
       related_files: z.array(z.string()).optional(),
       body: z.string().optional(),
+      spec_id: z.string().optional(),
     },
   },
   async ({ repositoryRoot, ...input }) => {
@@ -153,6 +154,7 @@ server.registerTool(
       tags: z.array(z.string()).optional(),
       related_files: z.array(z.string()).optional(),
       body: z.string().optional(),
+      spec_id: z.string().optional(),
     },
   },
   async ({ repositoryRoot, issueId, ...patch }) => {

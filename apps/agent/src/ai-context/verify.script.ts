@@ -7,6 +7,7 @@ import {
   readIssue,
   filterIssuesByStatus,
   searchIssuesByTag,
+  filterIssuesBySpec,
   createIssue,
   updateIssue,
   appendIssueLog,
@@ -134,6 +135,54 @@ async function main() {
 
   await rm(createdSpec.filePath, { force: true });
   console.log("smoke test de specs: ok (artefatos de teste removidos)");
+
+  // Smoke test descartável do round-trip de spec_id (ISSUE-0008): cria uma
+  // issue já vinculada a uma spec, lê de volta, confirma que sobrevive a uma
+  // mutation subsequente que não toca em spec_id, e confirma o filtro.
+  const specForLink = await createSpec(repositoryRoot, {
+    title: "[verify.script] spec descartável para vínculo de issue",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+  });
+
+  const linkedIssue = await createIssue(repositoryRoot, {
+    title: "[verify.script] issue descartável vinculada a spec",
+    priority: "low",
+    type: "research",
+    owner: "agent",
+    tags: ["verify-script-temp"],
+    spec_id: specForLink.frontmatter.id,
+  });
+  console.assert(
+    linkedIssue.frontmatter.spec_id === specForLink.frontmatter.id,
+    "createIssue deveria persistir spec_id"
+  );
+
+  const reread = await readIssue(repositoryRoot, linkedIssue.frontmatter.id);
+  console.assert(
+    reread?.frontmatter.spec_id === specForLink.frontmatter.id,
+    "spec_id deveria sobreviver à releitura do arquivo"
+  );
+
+  await appendIssueLog(repositoryRoot, linkedIssue.frontmatter.id, "mutation subsequente sem tocar em spec_id");
+  const afterMutation = await readIssue(repositoryRoot, linkedIssue.frontmatter.id);
+  console.assert(
+    afterMutation?.frontmatter.spec_id === specForLink.frontmatter.id,
+    "spec_id deveria sobreviver a uma mutation subsequente (appendIssueLog)"
+  );
+
+  const bySpec = await filterIssuesBySpec(repositoryRoot, specForLink.frontmatter.id);
+  console.assert(
+    bySpec.some((issue) => issue.frontmatter.id === linkedIssue.frontmatter.id),
+    "filterIssuesBySpec deveria encontrar a issue vinculada"
+  );
+
+  const unlinked = await updateIssue(repositoryRoot, linkedIssue.frontmatter.id, { spec_id: undefined });
+  console.log("updateIssue com spec_id undefined ->", unlinked.frontmatter.spec_id);
+
+  await rm(linkedIssue.filePath, { force: true });
+  await rm(specForLink.filePath, { force: true });
+  console.log("smoke test de spec_id (ISSUE-0008): ok (artefatos de teste removidos)");
 }
 
 main();
