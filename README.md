@@ -97,4 +97,4 @@ Para entender os detalhes técnicos e filosóficos, consulte:
 - [06-AI-copilot.md](docs/06%20-%20AI%20copilot.md) - Como a IA opera sobre o contexto.
 - [09 - ai-context.md](docs/09%20-%20ai-context.md) - Memória operacional persistente: o que já está implementado, e como difere da Issue de produto (Spec-Driven).
 
-> A convenção de uso do dia a dia (estrutura de pastas, status/prioridade/tipo permitidos) vive em [`AI_context/README.md`](AI_context/README.md) — esse é o documento vivo, não este README.
+> A convenção de uso do dia a dia (estrutura de pastas, status/prioridade/tipo permitidos) vive em [`AI_context/README.md`](AI_context/README.md) — esse é o documento vivo, não este README. Inclui também como ver o estado de todas as issues/specs com um `grep` direto nos arquivos, sem precisar de UI, API ou MCP.
