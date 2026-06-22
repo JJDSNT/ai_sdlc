@@ -226,7 +226,7 @@
   </p>
 
   <div class="input-row">
-    <input id="repo-input" type="text" placeholder="owner/repo ou URL do GitHub" />
+    <input id="repo-input" type="text" placeholder="owner/repo ou URL do GitHub" value="https://github.com/JJDSNT/ai_sdlc" />
     <input id="token-input" type="password" placeholder="Token (opcional, repos privados)" />
     <button id="load-btn">Carregar</button>
   </div>
@@ -584,13 +584,15 @@ repoInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") load();
 });
 
-// Repo na query string (?repo=owner/repo) carrega automaticamente —
-// permite compartilhar um link direto para o AI_context de um repositório.
+// Repo na query string (?repo=owner/repo) tem prioridade — permite
+// compartilhar um link direto para o AI_context de um repositório
+// específico. Sem isso, carrega o próprio ai_sdlc por padrão (dogfood),
+// como exemplo, até a pessoa colar outra URL e clicar em "Carregar".
 const presetRepo = new URLSearchParams(window.location.search).get("repo");
 if (presetRepo) {
   repoInput.value = presetRepo;
-  load();
 }
+load();
 </script>
 
 </body>

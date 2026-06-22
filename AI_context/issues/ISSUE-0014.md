@@ -148,3 +148,4 @@ chat→spec→issue→task.
 - 2026-06-22: iniciada implementação: novo app apps/ai-context-viewer (Vite+React, fetch client-side via GitHub Contents API).
 - 2026-06-22: escopo revisado após pergunta do usuário: nada de apps/ai-context-viewer (Vite/React/build) — um único docs/viewer/index.html vanilla JS, sem build, sem dependências, deploy via GitHub Pages 'serve from branch'.
 - 2026-06-22: implementação concluída: docs/viewer/index.html (vanilla JS, sem build), testado de ponta a ponta contra JJDSNT/ai_sdlc real via GitHub Contents API. Falta só habilitar GitHub Pages nas configurações do repositório (passo manual, fora do meu alcance). Movida para review.
+- 2026-06-22: ajuste pós-review: input pré-preenchido com https://github.com/JJDSNT/ai_sdlc e carregado automaticamente ao abrir a página (até a pessoa colar outra URL), a pedido do usuário.
